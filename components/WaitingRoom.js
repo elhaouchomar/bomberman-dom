@@ -1,5 +1,5 @@
 import { h, Component } from '../mini-framework/framework/core.js';
-import { sendMessage } from '../socket.js';
+import { sendMessage } from '../make-your-game/socket.js';
 
 class WaitingRoom extends Component {
   constructor(props) {

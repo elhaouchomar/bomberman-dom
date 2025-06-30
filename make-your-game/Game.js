@@ -1,9 +1,9 @@
-import { h, Component } from './mini-framework/framework/core.js';
+import { h, Component } from '../mini-framework/framework/core.js';
 import { connect, sendMessage } from './socket.js';
 import { mapArray } from "./map.js";
-import NicknameForm from './components/NicknameForm.js';
-import WaitingRoom from './components/WaitingRoom.js';
-import Player from './components/Player.js';
+import NicknameForm from '../components/NicknameForm.js';
+import WaitingRoom from '../components/WaitingRoom.js';
+import Player from '../components/Player.js';
 
 export const directions = {
     up: "ArrowUp",
