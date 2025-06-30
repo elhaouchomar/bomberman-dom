@@ -7,18 +7,25 @@ export class BombermanGame {
         this.framework = new MiniFramework();
         this.websocket = new WebSocketClient();
         this.gameState = new GameState();
+
         this.nickname = '';
-        this.playerId = 'player1';
+        this.playerId = 'player1';   // يُستبدل بعد join
+        this.playerIdSet = false;    // نتفادى تعيينه مرّتين
+
         this.playerCount = 0;
         this.waitingTimer = null;
         this.countdownTimer = null;
+
         this.keys = {};
         this.lastMoveTime = 0;
-        this.moveInterval = 50; // milliseconds
+        this.moveInterval = 50;      // ms
+
         this.elements = new Map();
 
         this.init();
     }
+
+    /* ---------- bootstrap ---------- */
 
     init() {
         this.cacheDOMElements();
@@ -27,103 +34,103 @@ export class BombermanGame {
     }
 
     cacheDOMElements() {
-        this.elements.set('nicknameScreen', document.getElementById('nickname-screen'));
-        this.elements.set('waitingScreen', document.getElementById('waiting-screen'));
-        this.elements.set('gameScreen', document.getElementById('game-screen'));
-        this.elements.set('joinBtn', document.getElementById('join-btn'));
-        this.elements.set('nicknameInput', document.getElementById('nickname-input'));
-        this.elements.set('playerCounter', document.getElementById('player-counter'));
-        this.elements.set('countdown', document.getElementById('countdown'));
-        this.elements.set('chatMessages', document.getElementById('chat-messages'));
-        this.elements.set('chatInput', document.getElementById('chat-input'));
-        this.elements.set('chatSend', document.getElementById('chat-send'));
-        this.elements.set('gameMap', document.getElementById('game-map'));
-        this.elements.set('lives', document.getElementById('lives'));
-        this.elements.set('bombs', document.getElementById('bombs'));
-        this.elements.set('power', document.getElementById('power'));
-        this.elements.set('speed', document.getElementById('speed'));
+        const ids = [
+            'nickname-screen', 'waiting-screen', 'game-screen',
+            'join-btn', 'nickname-input', 'player-counter', 'countdown',
+            'chat-messages', 'chat-input', 'chat-send',
+            'game-map', 'lives', 'bombs', 'power', 'speed'
+        ];
+        ids.forEach(id => this.elements.set(id, document.getElementById(id)));
     }
 
+    /* ---------- events ---------- */
+
     setupEventListeners() {
-        const joinBtn = this.elements.get('joinBtn');
-        const nicknameInput = this.elements.get('nicknameInput');
-        const chatInput = this.elements.get('chatInput');
-        const chatSend = this.elements.get('chatSend');
+        const $ = id => this.elements.get(id);
 
-        this.framework.on(joinBtn, 'click', () => this.joinGame());
-        this.framework.on(nicknameInput, 'keypress', (e) => {
-            if (e.key === 'Enter') this.joinGame();
-        });
+        this.framework.on($('join-btn'), 'click', () => this.joinGame());
+        this.framework.on($('nickname-input'), 'keypress', e => e.key === 'Enter' && this.joinGame());
 
-        this.framework.on(chatSend, 'click', () => this.sendChatMessage());
-        this.framework.on(chatInput, 'keypress', (e) => {
-            if (e.key === 'Enter') this.sendChatMessage();
-        });
+        this.framework.on($('chat-send'), 'click', () => this.sendChatMessage());
+        this.framework.on($('chat-input'), 'keypress', e => e.key === 'Enter' && this.sendChatMessage());
 
-        // Game controls
-        this.framework.on(document, 'keydown', (e) => {
+        // movement + bomb
+        this.framework.on(document, 'keydown', e => {
             this.keys[e.key] = true;
             if (e.key === ' ') {
                 e.preventDefault();
                 this.placeBomb();
             }
         });
-
-        this.framework.on(document, 'keyup', (e) => {
-            this.keys[e.key] = false;
-        });
+        this.framework.on(document, 'keyup', e => (this.keys[e.key] = false));
     }
 
+    /* ---------- WebSocket ---------- */
+
     setupWebSocket() {
-        this.websocket.on('playerJoined', (data) => {
+        /* basic lobby events */
+        this.websocket.on('playerJoined', data => {
+            // أول رسالة تخصّنا سنأخذ منها id
+            if (data.nickname === this.nickname && !this.playerIdSet) {
+                this.playerId = data.id;
+                this.playerIdSet = true;
+            }
             this.addChatMessage('System', `${data.nickname} joined the game`);
         });
 
-        this.websocket.on('playerList', (players) => {
+        this.websocket.on('playerLeft', data =>
+            this.addChatMessage('System', `${data.nickname} left the game`)
+        );
+
+        this.websocket.on('chatMessage', data =>
+            this.addChatMessage(data.nickname, data.message)
+        );
+
+        this.websocket.on('playerList', players => {
             this.playerCount = players.length;
             this.updatePlayerCounter();
-            
+
+            /* countdown logic */
             if (this.playerCount >= 4) {
                 this.startCountdown();
             } else if (this.playerCount >= 2) {
                 if (!this.waitingTimer && !this.countdownTimer) {
-                    this.waitingTimer = setTimeout(() => {
-                        this.startCountdown();
-                    }, 20000);
+                    this.waitingTimer = setTimeout(() => this.startCountdown(), 20_000);
                 }
-            } else { // player count < 2
-                 if (this.waitingTimer) {
-                    clearTimeout(this.waitingTimer);
-                    this.waitingTimer = null;
-                 }
-                 // If a countdown is in progress with less than 2 players, stop it.
-                 if (this.countdownTimer) {
-                    clearTimeout(this.countdownTimer);
-                    this.countdownTimer = null;
-                    this.elements.get('countdown').textContent = '';
-                 }
+            } else {
+                clearTimeout(this.waitingTimer);
+                this.waitingTimer = null;
+
+                clearTimeout(this.countdownTimer);
+                this.countdownTimer = null;
+                this.elements.get('countdown').textContent = '';
             }
         });
 
-        this.websocket.on('playerLeft', (data) => {
-            this.addChatMessage('System', `${data.nickname} left the game`);
+        /* realtime game events */
+        this.websocket.on('move', data => {
+            if (data.id === this.playerId) return;          // نتجاهل حركتنا
+            const p = this.gameState.players.get(data.id);
+            if (p) {
+                p.x = data.x;
+                p.y = data.y;
+                this.updatePlayerPosition(p);
+            }
         });
 
-        this.websocket.on('chatMessage', (data) => {
-            this.addChatMessage(data.nickname, data.message);
+        this.websocket.on('placeBomb', data => {
+            if (data.id === this.playerId) return;
+            this.placeBombAt(data.id, data.x, data.y);
         });
 
-        this.websocket.on('gameStart', () => {
-            this.startGame();
-        });
+        this.websocket.on('gameStart', () => this.startGame());
     }
 
+    /* ---------- lobby ---------- */
+
     joinGame() {
-        const nickname = this.elements.get('nicknameInput').value.trim();
-        if (!nickname) {
-            alert('Please enter a nickname');
-            return;
-        }
+        const nickname = this.elements.get('nickname-input').value.trim();
+        if (!nickname) return alert('Please enter a nickname');
 
         this.nickname = nickname;
         this.showScreen('waiting-screen');
@@ -131,454 +138,323 @@ export class BombermanGame {
     }
 
     showScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(screen => {
-            screen.classList.remove('active');
-        });
-        this.elements.get(screenId).classList.add('active');
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        const el = document.getElementById(screenId);
+        if (el) el.classList.add('active');
     }
 
     updatePlayerCounter() {
-        this.elements.get('playerCounter').textContent = `Players: ${this.playerCount}/4`;
+        this.elements.get('player-counter').textContent = `Players: ${this.playerCount}/4`;
     }
 
     startCountdown() {
         if (this.countdownTimer) return;
+        clearTimeout(this.waitingTimer);
 
-        if (this.waitingTimer) {
-            clearTimeout(this.waitingTimer);
-            this.waitingTimer = null;
-        }
+        let n = 10;
+        const $count = this.elements.get('countdown');
 
-        let countdown = 10;
-        const countdownElement = this.elements.get('countdown');
-        
-        const updateCountdown = () => {
-            countdownElement.textContent = `Game starts in: ${countdown}`;
-            countdown--;
-            
-            if (countdown < 0) {
+        const tick = () => {
+            $count.textContent = `Game starts in: ${n}`;
+            if (n-- <= 0) {
                 this.websocket.send('gameStart', {});
             } else {
-                this.countdownTimer = setTimeout(updateCountdown, 1000);
+                this.countdownTimer = setTimeout(tick, 1000);
             }
         };
-        
-        updateCountdown();
+        tick();
     }
 
-    addChatMessage(nickname, message) {
-        const chatMessages = this.elements.get('chatMessages');
-        const messageElement = this.framework.createElement('div');
-        messageElement.innerHTML = `<strong>${nickname}:</strong> ${message}`;
-        chatMessages.appendChild(messageElement);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+    addChatMessage(nick, msg) {
+        const box = this.elements.get('chat-messages');
+        const div = this.framework.createElement('div');
+        div.innerHTML = `<strong>${nick}:</strong> ${msg}`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
     }
 
     sendChatMessage() {
-        const chatInput = this.elements.get('chatInput');
-        const message = chatInput.value.trim();
-        
-        if (message) {
-            this.websocket.send('chatMessage', {
-                nickname: this.nickname,
-                message: message
-            });
-            chatInput.value = '';
-        }
+        const input = this.elements.get('chat-input');
+        const msg = input.value.trim();
+        if (!msg) return;
+        this.websocket.send('chatMessage', { nickname: this.nickname, message: msg });
+        input.value = '';
     }
+
+    /* ---------- game start ---------- */
 
     startGame() {
         this.showScreen('game-screen');
         this.gameState.generateMap();
         this.setupPlayers();
         this.renderMap();
-        this.framework.startGameLoop((deltaTime) => this.gameLoop(deltaTime));
+        this.framework.startGameLoop(dt => this.gameLoop(dt));
     }
 
     setupPlayers() {
-        const positions = [
+        const pos = [
             { x: 4, y: 4 },
             { x: this.gameState.mapWidth - 36, y: 4 },
             { x: 4, y: this.gameState.mapHeight - 36 },
             { x: this.gameState.mapWidth - 36, y: this.gameState.mapHeight - 36 }
         ];
 
-        this.gameState.addPlayer(this.playerId, this.nickname, positions[0]);
+        this.gameState.addPlayer(this.playerId, this.nickname, pos[0]);
         this.gameState.currentPlayer = this.gameState.players.get(this.playerId);
 
-        // Add AI players for demo
+        // مؤقتاً: AIs لملء الخانات الفارغة
         for (let i = 1; i < Math.min(4, this.playerCount); i++) {
-            this.gameState.addPlayer(`player${i + 1}`, `AI Player ${i + 1}`, positions[i]);
+            this.gameState.addPlayer(`player${i + 1}`, `AI ${i + 1}`, pos[i]);
         }
     }
 
+    /* ---------- render ---------- */
+
     renderMap() {
-        const gameMap = this.elements.get('gameMap');
-        gameMap.innerHTML = '';
+        const map = this.elements.get('game-map');
+        map.innerHTML = '';
 
-        // Render walls
-        this.gameState.walls.forEach(pos => {
-            const [x, y] = pos.split(',').map(Number);
-            const wall = this.framework.createElement('div', 'wall', gameMap);
-            this.framework.setStyle(wall, {
-                left: `${x * this.gameState.tileSize}px`,
-                top: `${y * this.gameState.tileSize}px`
-            });
+        // walls
+        this.gameState.walls.forEach(p => {
+            const [x, y] = p.split(',').map(Number);
+            const w = this.framework.createElement('div', 'wall', map);
+            this.framework.setStyle(w, { left: `${x * 40}px`, top: `${y * 40}px` });
         });
 
-        // Render blocks
-        this.gameState.blocks.forEach(pos => {
-            const [x, y] = pos.split(',').map(Number);
-            const block = this.framework.createElement('div', 'block', gameMap);
-            this.framework.setStyle(block, {
-                left: `${x * this.gameState.tileSize}px`,
-                top: `${y * this.gameState.tileSize}px`
-            });
+        // blocks
+        this.gameState.blocks.forEach(p => {
+            const [x, y] = p.split(',').map(Number);
+            const b = this.framework.createElement('div', 'block', map);
+            this.framework.setStyle(b, { left: `${x * 40}px`, top: `${y * 40}px` });
         });
 
-        // Render players
-        this.gameState.players.forEach((player, playerId) => {
-            if (player.alive) {
-                const playerElement = this.framework.createElement('div', `player ${playerId}`, gameMap);
-                playerElement.id = playerId;
-                this.framework.setStyle(playerElement, {
-                    left: `${player.x}px`,
-                    top: `${player.y}px`
-                });
-            }
+        // players
+        this.gameState.players.forEach(pl => {
+            if (!pl.alive) return;
+            const el = this.framework.createElement('div', `player ${pl.id}`, map);
+            el.id = pl.id;
+            this.framework.setStyle(el, { left: `${pl.x}px`, top: `${pl.y}px` });
         });
     }
 
-    gameLoop(deltaTime) {
-        this.handleInput(deltaTime);
-        this.updateBombs(deltaTime);
-        this.updateExplosions(deltaTime);
-        this.updateAI(deltaTime);
+    /* ---------- game loop ---------- */
+
+    gameLoop(dt) {
+        this.handleInput(dt);
+        this.updateBombs(dt);
+        this.updateExplosions(dt);
+        this.updateAI(dt);
         this.updateUI();
         this.checkGameOver();
     }
 
-    handleInput(deltaTime) {
-        if (!this.gameState.currentPlayer || !this.gameState.currentPlayer.alive) return;
+    /* ----- input ----- */
 
-        const currentTime = Date.now();
-        if (currentTime - this.lastMoveTime < this.moveInterval) return;
+    handleInput() {
+        const p = this.gameState.currentPlayer;
+        if (!p || !p.alive) return;
 
-        const player = this.gameState.currentPlayer;
-        const moveSpeed = player.speed * 2;
-        let newX = player.x;
-        let newY = player.y;
+        const now = Date.now();
+        if (now - this.lastMoveTime < this.moveInterval) return;
 
-        if (this.keys['ArrowUp'] || this.keys['w']) newY -= moveSpeed;
-        if (this.keys['ArrowDown'] || this.keys['s']) newY += moveSpeed;
-        if (this.keys['ArrowLeft'] || this.keys['a']) newX -= moveSpeed;
-        if (this.keys['ArrowRight'] || this.keys['d']) newX += moveSpeed;
+        const speed = p.speed * 2;
+        let nx = p.x, ny = p.y;
+        if (this.keys['ArrowUp'] || this.keys['w']) ny -= speed;
+        if (this.keys['ArrowDown'] || this.keys['s']) ny += speed;
+        if (this.keys['ArrowLeft'] || this.keys['a']) nx -= speed;
+        if (this.keys['ArrowRight'] || this.keys['d']) nx += speed;
 
-        if (this.gameState.isValidPosition(newX, newY)) {
-            player.x = newX;
-            player.y = newY;
-            this.updatePlayerPosition(player);
-            this.lastMoveTime = currentTime;
+        if (this.gameState.isValidPosition(nx, ny)) {
+            p.x = nx; p.y = ny;
+            this.updatePlayerPosition(p);
+            this.lastMoveTime = now;
+            /* broadcast move */
+            this.websocket.send('move', { id: p.id, x: p.x, y: p.y });
         }
     }
 
-    updatePlayerPosition(player) {
-        const playerElement = document.getElementById(player.id);
-        if (playerElement) {
-            this.framework.setStyle(playerElement, {
-                left: `${player.x}px`,
-                top: `${player.y}px`
-            });
-        }
+    updatePlayerPosition(p) {
+        const el = document.getElementById(p.id);
+        if (el) this.framework.setStyle(el, { left: `${p.x}px`, top: `${p.y}px` });
     }
+
+    /* ----- bombs ----- */
 
     placeBomb() {
-        const player = this.gameState.currentPlayer;
-        if (!player || !player.alive || player.activeBombs >= player.maxBombs) return;
+        const p = this.gameState.currentPlayer;
+        if (!p || !p.alive || p.activeBombs >= p.maxBombs) return;
 
-        const bombX = Math.floor((player.x + 16) / this.gameState.tileSize) * this.gameState.tileSize;
-        const bombY = Math.floor((player.y + 16) / this.gameState.tileSize) * this.gameState.tileSize;
-        const bombId = `${bombX},${bombY}`;
+        const bx = Math.floor((p.x + 16) / 40) * 40;
+        const by = Math.floor((p.y + 16) / 40) * 40;
+        this.placeBombAt(p.id, bx, by);
+        /* broadcast */
+        this.websocket.send('placeBomb', { id: p.id, x: bx, y: by });
+    }
 
-        if (this.gameState.bombs.has(bombId)) return;
+    placeBombAt(ownerId, x, y) {
+        const p = this.gameState.players.get(ownerId);
+        if (!p || !p.alive || p.activeBombs >= p.maxBombs) return;
 
-        const bomb = {
-            x: bombX,
-            y: bombY,
-            timer: 3000,
-            power: player.power,
-            owner: player.id
-        };
+        const bId = `${x},${y}`;
+        if (this.gameState.bombs.has(bId)) return;
 
-        this.gameState.bombs.set(bombId, bomb);
-        player.activeBombs++;
+        this.gameState.bombs.set(bId, { x, y, timer: 3000, power: p.power, owner: ownerId });
+        p.activeBombs++;
 
-        const bombElement = this.framework.createElement('div', 'bomb', this.elements.get('gameMap'));
-        bombElement.id = `bomb-${bombId}`;
-        this.framework.setStyle(bombElement, {
-            left: `${bombX + 4}px`,
-            top: `${bombY + 4}px`
+        const el = this.framework.createElement('div', 'bomb', this.elements.get('game-map'));
+        el.id = `bomb-${bId}`;
+        this.framework.setStyle(el, { left: `${x + 4}px`, top: `${y + 4}px` });
+    }
+
+    updateBombs(dt) {
+        this.gameState.bombs.forEach((b, id) => {
+            b.timer -= dt;
+            if (b.timer <= 0) this.explodeBomb(b, id);
         });
     }
 
-    updateBombs(deltaTime) {
-        this.gameState.bombs.forEach((bomb, bombId) => {
-            bomb.timer -= deltaTime;
-            
-            if (bomb.timer <= 0) {
-                this.explodeBomb(bomb, bombId);
-            }
-        });
-    }
-
-    explodeBomb(bomb, bombId) {
-        this.gameState.bombs.delete(bombId);
-        
-        const owner = this.gameState.players.get(bomb.owner);
+    explodeBomb(b, id) {
+        this.gameState.bombs.delete(id);
+        const owner = this.gameState.players.get(b.owner);
         if (owner) owner.activeBombs--;
 
-        // Remove bomb element
-        const bombElement = document.getElementById(`bomb-${bombId}`);
-        if (bombElement) bombElement.remove();
+        document.getElementById(`bomb-${id}`)?.remove();
 
-        // Create explosion
-        const explosionPositions = this.getExplosionPositions(bomb.x, bomb.y, bomb.power);
-        
-        explosionPositions.forEach(pos => {
-            const explosionId = `${pos.x},${pos.y}`;
-            this.gameState.explosions.set(explosionId, {
-                x: pos.x,
-                y: pos.y,
-                timer: 300
-            });
+        const cells = this.getExplosionPositions(b.x, b.y, b.power);
+        cells.forEach(pos => {
+            const eId = `${pos.x},${pos.y}`;
+            this.gameState.explosions.set(eId, { ...pos, timer: 300 });
 
-            const explosionElement = this.framework.createElement('div', 'explosion', this.elements.get('gameMap'));
-            explosionElement.id = `explosion-${explosionId}`;
-            this.framework.setStyle(explosionElement, {
-                left: `${pos.x}px`,
-                top: `${pos.y}px`
-            });
+            const ex = this.framework.createElement('div', 'explosion', this.elements.get('game-map'));
+            ex.id = `explosion-${eId}`;
+            this.framework.setStyle(ex, { left: `${pos.x}px`, top: `${pos.y}px` });
 
-            // Check for block destruction
-            const tileX = Math.floor(pos.x / this.gameState.tileSize);
-            const tileY = Math.floor(pos.y / this.gameState.tileSize);
-            const tileKey = `${tileX},${tileY}`;
-            
-            if (this.gameState.blocks.has(tileKey)) {
-                this.gameState.blocks.delete(tileKey);
+            /* block destruction & powerup */
+            const cellKey = `${pos.x / 40},${pos.y / 40}`;
+            if (this.gameState.blocks.has(cellKey)) {
+                this.gameState.blocks.delete(cellKey);
                 document.querySelector(`.block[style*="left: ${pos.x}px"][style*="top: ${pos.y}px"]`)?.remove();
-                
-                // Maybe spawn powerup
-                if (Math.random() < 0.3) {
-                    this.spawnPowerup(pos.x, pos.y);
-                }
+                if (Math.random() < 0.3) this.spawnPowerup(pos.x, pos.y);
             }
-
-            // Check for player damage
             this.checkPlayerDamage(pos.x, pos.y);
         });
     }
 
     getExplosionPositions(x, y, power) {
-        const positions = [{ x, y }];
-        const directions = [
-            { dx: 0, dy: -this.gameState.tileSize }, // up
-            { dx: 0, dy: this.gameState.tileSize },  // down
-            { dx: -this.gameState.tileSize, dy: 0 }, // left
-            { dx: this.gameState.tileSize, dy: 0 }   // right
-        ];
-
-        directions.forEach(dir => {
+        const res = [{ x, y }];
+        const dirs = [{dx:0,dy:-40},{dx:0,dy:40},{dx:-40,dy:0},{dx:40,dy:0}];
+        dirs.forEach(d => {
             for (let i = 1; i <= power; i++) {
-                const newX = x + dir.dx * i;
-                const newY = y + dir.dy * i;
-                
-                if (newX < 0 || newY < 0 || newX >= this.gameState.mapWidth || newY >= this.gameState.mapHeight) break;
-                
-                const tileX = Math.floor(newX / this.gameState.tileSize);
-                const tileY = Math.floor(newY / this.gameState.tileSize);
-                
-                if (this.gameState.walls.has(`${tileX},${tileY}`)) break;
-                
-                positions.push({ x: newX, y: newY });
-                
-                if (this.gameState.blocks.has(`${tileX},${tileY}`)) break;
+                const nx = x + d.dx * i, ny = y + d.dy * i;
+                if (nx<0||ny<0||nx>=this.gameState.mapWidth||ny>=this.gameState.mapHeight) break;
+                const cell = `${nx/40},${ny/40}`;
+                if (this.gameState.walls.has(cell)) break;
+                res.push({x:nx,y:ny});
+                if (this.gameState.blocks.has(cell)) break;
             }
         });
-
-        return positions;
+        return res;
     }
 
-    checkPlayerDamage(x, y) {
-        this.gameState.players.forEach(player => {
-            if (!player.alive) return;
-            
-            const playerCenterX = player.x + 16;
-            const playerCenterY = player.y + 16;
-            
-            if (Math.abs(playerCenterX - (x + 20)) < 20 && 
-                Math.abs(playerCenterY - (y + 20)) < 20) {
-                player.lives--;
-                
-                if (player.lives <= 0) {
-                    player.alive = false;
-                    const playerElement = document.getElementById(player.id);
-                    if (playerElement) playerElement.remove();
-                }
+    updateExplosions(dt) {
+        this.gameState.explosions.forEach((ex, id) => {
+            ex.timer -= dt;
+            if (ex.timer <= 0) {
+                this.gameState.explosions.delete(id);
+                document.getElementById(`explosion-${id}`)?.remove();
             }
         });
     }
 
-    spawnPowerup(x, y) {
-        const types = ['bombs', 'flames', 'speed'];
-        const type = types[Math.floor(Math.random() * types.length)];
-        const powerupId = `${x},${y}`;
-        
-        this.gameState.powerups.set(powerupId, { x, y, type });
-        
-        const powerupElement = this.framework.createElement('div', `powerup ${type}`, this.elements.get('gameMap'));
-        powerupElement.id = `powerup-${powerupId}`;
-        this.framework.setStyle(powerupElement, {
-            left: `${x + 5}px`,
-            top: `${y + 5}px`
-        });
-    }
+    /* ----- AI (demo) ----- */
 
-    updateExplosions(deltaTime) {
-        this.gameState.explosions.forEach((explosion, explosionId) => {
-            explosion.timer -= deltaTime;
-            
-            if (explosion.timer <= 0) {
-                this.gameState.explosions.delete(explosionId);
-                const explosionElement = document.getElementById(`explosion-${explosionId}`);
-                if (explosionElement) explosionElement.remove();
-            }
-        });
-    }
-
-    updateAI(deltaTime) {
-        // Simple AI for demo purposes
-        this.gameState.players.forEach(player => {
-            if (player.id === this.playerId || !player.alive) return;
-            
-            // Random movement
+    updateAI() {
+        // very simple random AI
+        this.gameState.players.forEach(p => {
+            if (p.id === this.playerId || !p.alive) return;
             if (Math.random() < 0.02) {
-                const directions = [
-                    { dx: 0, dy: -2 },
-                    { dx: 0, dy: 2 },
-                    { dx: -2, dy: 0 },
-                    { dx: 2, dy: 0 }
-                ];
-                
-                const dir = directions[Math.floor(Math.random() * directions.length)];
-                const newX = player.x + dir.dx;
-                const newY = player.y + dir.dy;
-                
-                if (this.gameState.isValidPosition(newX, newY)) {
-                    player.x = newX;
-                    player.y = newY;
-                    this.updatePlayerPosition(player);
+                const dirs = [{dx:0,dy:-2},{dx:0,dy:2},{dx:-2,dy:0},{dx:2,dy:0}];
+                const d = dirs[Math.floor(Math.random()*dirs.length)];
+                const nx = p.x + d.dx, ny = p.y + d.dy;
+                if (this.gameState.isValidPosition(nx,ny)) {
+                    p.x = nx; p.y = ny;
+                    this.updatePlayerPosition(p);
                 }
             }
-            
-            // Random bomb placement
-            if (Math.random() < 0.01 && player.activeBombs < player.maxBombs) {
-                const bombX = Math.floor((player.x + 16) / this.gameState.tileSize) * this.gameState.tileSize;
-                const bombY = Math.floor((player.y + 16) / this.gameState.tileSize) * this.gameState.tileSize;
-                const bombId = `${bombX},${bombY}`;
-
-                if (!this.gameState.bombs.has(bombId)) {
-                    const bomb = {
-                        x: bombX,
-                        y: bombY,
-                        timer: 3000,
-                        power: player.power,
-                        owner: player.id
-                    };
-
-                    this.gameState.bombs.set(bombId, bomb);
-                    player.activeBombs++;
-
-                    const bombElement = this.framework.createElement('div', 'bomb', this.elements.get('gameMap'));
-                    bombElement.id = `bomb-${bombId}`;
-                    this.framework.setStyle(bombElement, {
-                        left: `${bombX + 4}px`,
-                        top: `${bombY + 4}px`
-                    });
-                }
+            if (Math.random() < 0.01 && p.activeBombs < p.maxBombs) {
+                const bx = Math.floor((p.x+16)/40)*40;
+                const by = Math.floor((p.y+16)/40)*40;
+                this.placeBombAt(p.id,bx,by);
             }
         });
     }
+
+    /* ----- UI & endgame ----- */
 
     updateUI() {
-        if (this.gameState.currentPlayer) {
-            const player = this.gameState.currentPlayer;
-            this.elements.get('lives').textContent = player.lives;
-            this.elements.get('bombs').textContent = player.maxBombs;
-            this.elements.get('power').textContent = player.power;
-            this.elements.get('speed').textContent = player.speed;
-            
-            // Check for powerup collection
-            this.checkPowerupCollection(player);
-        }
+        const p = this.gameState.currentPlayer;
+        if (!p) return;
+        this.elements.get('lives').textContent = p.lives;
+        this.elements.get('bombs').textContent = p.maxBombs;
+        this.elements.get('power').textContent = p.power;
+        this.elements.get('speed').textContent = p.speed;
+        this.checkPowerupCollection(p);
     }
 
-    checkPowerupCollection(player) {
-        const playerCenterX = player.x + 16;
-        const playerCenterY = player.y + 16;
-        
-        this.gameState.powerups.forEach((powerup, powerupId) => {
-            const powerupCenterX = powerup.x + 15;
-            const powerupCenterY = powerup.y + 15;
-            
-            if (Math.abs(playerCenterX - powerupCenterX) < 20 && 
-                Math.abs(playerCenterY - powerupCenterY) < 20) {
-                
-                // Apply powerup effect
-                switch (powerup.type) {
-                    case 'bombs':
-                        player.maxBombs++;
-                        break;
-                    case 'flames':
-                        player.power++;
-                        break;
-                    case 'speed':
-                        player.speed = Math.min(player.speed + 1, 3);
-                        break;
+    checkPowerupCollection(p) {
+        const cx = p.x + 16, cy = p.y + 16;
+        this.gameState.powerups.forEach((pu,id)=>{
+            const pcx = pu.x+15, pcy = pu.y+15;
+            if (Math.abs(cx-pcx)<20 && Math.abs(cy-pcy)<20){
+                switch(pu.type){
+                    case 'bombs': p.maxBombs++; break;
+                    case 'flames': p.power++; break;
+                    case 'speed': p.speed = Math.min(p.speed+1,3); break;
                 }
-                
-                // Remove powerup
-                this.gameState.powerups.delete(powerupId);
-                const powerupElement = document.getElementById(`powerup-${powerupId}`);
-                if (powerupElement) powerupElement.remove();
+                this.gameState.powerups.delete(id);
+                document.getElementById(`powerup-${id}`)?.remove();
             }
         });
     }
 
-    checkGameOver() {
-        const alivePlayers = this.gameState.getAlivePlayers();
-        
-        if (alivePlayers.length <= 1 && !this.gameState.gameOver) {
-            this.gameState.gameOver = true;
-            this.framework.stopGameLoop();
-            
-            const gameMap = this.elements.get('gameMap');
-            const gameOverElement = this.framework.createElement('div', 'game-over', gameMap);
-            
-            let message = '';
-            if (alivePlayers.length === 1) {
-                const winner = alivePlayers[0];
-                message = winner.id === this.playerId ? 
-                    '🎉 YOU WIN! 🎉' : 
-                    `🏆 ${winner.nickname} WINS! 🏆`;
-            } else {
-                message = '💀 GAME OVER 💀<br>No survivors!';
+    checkPlayerDamage(x,y){
+        this.gameState.players.forEach(p=>{
+            if(!p.alive) return;
+            const cX = p.x+16, cY = p.y+16;
+            if (Math.abs(cX-(x+20))<20 && Math.abs(cY-(y+20))<20){
+                if(--p.lives<=0){
+                    p.alive=false;
+                    document.getElementById(p.id)?.remove();
+                }
             }
-            
-            gameOverElement.innerHTML = `
-                <h2>${message}</h2>
-                <button class="btn" onclick="location.reload()">Play Again</button>
-            `;
-        }
+        });
     }
-} 
+
+    spawnPowerup(x,y){
+        const types=['bombs','flames','speed'];
+        const t = types[Math.floor(Math.random()*types.length)];
+        const id = `${x},${y}`;
+        this.gameState.powerups.set(id,{x,y,type:t});
+        const el = this.framework.createElement('div',`powerup ${t}`,this.elements.get('game-map'));
+        el.id=`powerup-${id}`;
+        this.framework.setStyle(el,{left:`${x+5}px`,top:`${y+5}px`});
+    }
+
+    checkGameOver(){
+        const alive = this.gameState.getAlivePlayers();
+        if(alive.length>1||this.gameState.gameOver) return;
+        this.gameState.gameOver=true;
+        this.framework.stopGameLoop();
+
+        const map = this.elements.get('game-map');
+        const box = this.framework.createElement('div','game-over',map);
+        let msg='';
+        if(alive.length===1){
+            const w=alive[0];
+            msg = w.id===this.playerId ? '🎉 YOU WIN! 🎉' : `🏆 ${w.nickname} WINS! 🏆`;
+        } else {
+            msg='💀 GAME OVER 💀<br>No survivors!';
+        }
+        box.innerHTML=`<h2>${msg}</h2><button class="btn" onclick="location.reload()">Play Again</button>`;
+    }
+}
