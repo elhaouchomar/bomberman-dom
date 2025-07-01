@@ -3,6 +3,7 @@ class GameState {
         this.players = new Map();
         this.bombs = new Map();
         this.explosions = new Map();
+        this.powerups = new Map();
         this.walls = new Set();
         this.blocks = new Set();
         this.mapWidth = 800;
@@ -64,6 +65,7 @@ class GameState {
                     player.x = nx;
                     player.y = ny;
                 }
+                this.checkPowerupCollection(player);
                 break;
             }
             case 'placeBomb': {
@@ -102,10 +104,57 @@ class GameState {
             const eId = `${pos.x},${pos.y}`;
             this.explosions.set(eId, { ...pos, timer: 300 });
             const cell = `${pos.x / this.tileSize},${pos.y / this.tileSize}`;
-            if (this.blocks.has(cell)) this.blocks.delete(cell);
+            if (this.blocks.has(cell)) {
+                this.blocks.delete(cell);
+                this.maybeSpawnPowerup(pos.x, pos.y);
+            }
             this.checkPlayerDamage(pos.x, pos.y);
             const bombId = `${pos.x},${pos.y}`;
             if (this.bombs.has(bombId)) this.explodeBomb(this.bombs.get(bombId), bombId);
+        }
+    }
+
+    maybeSpawnPowerup(x, y) {
+        if (Math.random() < 0.3) {
+            const powerupTypes = ['bombs', 'flames', 'speed'];
+            const randomType = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
+            const powerupId = `${x},${y}`;
+
+            this.powerups.set(powerupId, {
+                x: x, y: y, type: randomType
+            });
+        }
+    }
+
+    checkPowerupCollection(player) {
+        const playerCenterX = player.x + 16;
+        const playerCenterY = player.y + 16;
+
+        for (const [id, powerup] of Array.from(this.powerups.entries())) {
+            const powerupCenterX = powerup.x + 20;
+            const powerupCenterY = powerup.y + 20;
+
+            if (Math.abs(playerCenterX - powerupCenterX) < 20 &&
+                Math.abs(playerCenterY - powerupCenterY) < 20) {
+
+                this.applyPowerup(player, powerup.type);
+
+                this.powerups.delete(id);
+            }
+        }
+    }
+
+    applyPowerup(player, type) {
+        switch (type) {
+            case 'bombs':
+                player.maxBombs++;
+                break;
+            case 'flames':
+                player.power++;
+                break;
+            case 'speed':
+                player.speed++;
+                break;
         }
     }
 
@@ -141,6 +190,7 @@ class GameState {
             players: Array.from(this.players.values()),
             bombs: Array.from(this.bombs.values()),
             explosions: Array.from(this.explosions.values()),
+            powerups: Array.from(this.powerups.values()),
             walls: Array.from(this.walls),
             blocks: Array.from(this.blocks),
             mapWidth: this.mapWidth,

@@ -1,7 +1,7 @@
-import WebSocket from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
 import GameState from './game/GameState.js';
 
-const wss = new WebSocket.Server({ port: 8081 });
+const wss = new WebSocketServer({ port: 8081 });
 const gameState = new GameState();
 
 const spawnPositions = [
