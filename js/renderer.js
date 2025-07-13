@@ -4,7 +4,7 @@ export function renderGame(state, playerId, framework) {
     if (!map) return;
     map.innerHTML = '';
 
-    // Draw walls using framework
+    // Draw walls
     state.walls.forEach(key => {
         const [x, y] = key.split(',').map(Number);
         const d = framework.createElement('div', 'wall', map);
@@ -14,7 +14,7 @@ export function renderGame(state, playerId, framework) {
         });
     });
 
-    // Draw blocks using framework
+    // Draw blocks
     state.blocks.forEach(key => {
         const [x, y] = key.split(',').map(Number);
         const d = framework.createElement('div', 'block', map);
@@ -24,7 +24,7 @@ export function renderGame(state, playerId, framework) {
         });
     });
 
-    // Draw powerups using framework
+    // Draw powerups
     state.powerups.forEach(powerup => {
         const d = framework.createElement('img', `powerup ${powerup.type}`, map);
         
@@ -49,7 +49,7 @@ export function renderGame(state, playerId, framework) {
         d.title = `${powerup.type.charAt(0).toUpperCase() + powerup.type.slice(1)} Power-up`;
     });
 
-    // Draw bombs using framework
+    // Draw bombs
     state.bombs.forEach(bomb => {
         const d = framework.createElement('img', 'bomb', map);
         d.src = 'images/Bomb.png';
@@ -64,7 +64,7 @@ export function renderGame(state, playerId, framework) {
         });
     });
 
-    // Draw explosions using framework
+    // Draw explosions
     state.explosions.forEach(explosion => {
         const d = framework.createElement('img', 'explosion', map);
         d.src = 'images/Flames.png';
@@ -79,7 +79,7 @@ export function renderGame(state, playerId, framework) {
         });
     });
 
-    // Draw players using framework
+    // Draw players
     state.players.forEach(p => {
         if (!p.alive) return;
         const d = framework.createElement('img', `player ${p.id === playerId ? 'me' : ''}`, map);
@@ -96,7 +96,7 @@ export function renderGame(state, playerId, framework) {
         d.title = p.nickname;
     });
 
-    // Update UI (lives, bombs, power, speed) using framework
+    // Update UI (lives, bombs, power, speed)
     if (playerId) {
         const me = state.players.find(p => p.id === playerId);
         if (me) {
@@ -105,12 +105,13 @@ export function renderGame(state, playerId, framework) {
             if (livesElement) {
                 livesElement.innerHTML = '';
                 for (let i = 0; i < me.lives; i++) {
-                    const heart = framework.createElement('img', '', livesElement);
+                    const heart = document.createElement('img');
                     heart.src = 'images/heart.png';
                     heart.alt = 'Heart';
                     // heart.style.width = '20px';
                     // heart.style.height = '20px';
                     // heart.style.marginRight = '2px';
+                    livesElement.appendChild(heart);
                 }
             }
             
@@ -119,12 +120,13 @@ export function renderGame(state, playerId, framework) {
             if (bombsElement) {
                 bombsElement.innerHTML = '';
                 for (let i = 0; i < me.maxBombs; i++) {
-                    const bomb = framework.createElement('img', '', bombsElement);
+                    const bomb = document.createElement('img');
                     bomb.src = 'images/Bomb.png';
                     bomb.alt = 'Bomb';
                     // bomb.style.width = '20px';
                     // bomb.style.height = '20px';
                     // bomb.style.marginRight = '2px';
+                    bombsElement.appendChild(bomb);
                 }
             }
             
@@ -133,12 +135,13 @@ export function renderGame(state, playerId, framework) {
             if (powerElement) {
                 powerElement.innerHTML = '';
                 for (let i = 0; i < me.power; i++) {
-                    const flame = framework.createElement('img', '', powerElement);
+                    const flame = document.createElement('img');
                     flame.src = 'images/Flames.png';
                     flame.alt = 'Flame';
                     // flame.style.width = '20px';
                     // flame.style.height = '20px';
                     // flame.style.marginRight = '2px';
+                    powerElement.appendChild(flame);
                 }
             }
             
@@ -147,9 +150,10 @@ export function renderGame(state, playerId, framework) {
             if (speedElement) {
                 speedElement.innerHTML = '';
                 for (let i = 0; i < me.speed; i++) {
-                    const speed = framework.createElement('img', '', speedElement);
+                    const speed = document.createElement('img');
                     speed.src = 'images/speedGift.png';
                     speed.alt = 'Speed';
+                    speedElement.appendChild(speed);
                 }
             }
         }

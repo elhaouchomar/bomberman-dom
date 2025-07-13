@@ -7,13 +7,6 @@ let playerId = null;
 let nickname = '';
 const framework = new MiniFramework();
 
-// UI elements created by framework
-let appContainer = null;
-let nicknameScreen = null;
-let waitingScreen = null;
-let gameScreen = null;
-let chatOverlay = null;
-
 // Smooth movement variables
 let animationId = null;
 let lastServerState = null;
@@ -23,122 +16,6 @@ let lastRenderTime = 0;
 const SERVER_TICK_RATE = 50; // 20 FPS
 // const CLIENT_TICK_RATE = 16; // ~60 FPS for smooth rendering
 
-// Initialize the application using the framework
-function initializeApp() {
-    // Get the main app container
-    appContainer = document.getElementById('app');
-    if (!appContainer) {
-        console.error('App container not found!');
-        return;
-    }
-
-    // Create all screens using the framework
-    createNicknameScreen();
-    createWaitingScreen();
-    createGameScreen();
-    createChatOverlay();
-
-    // Show nickname screen by default
-    showScreen('nickname-screen');
-}
-
-function createNicknameScreen() {
-    nicknameScreen = framework.createElement('div', 'screen active', appContainer);
-    nicknameScreen.id = 'nickname-screen';
-    
-    const nicknameContainer = framework.createElement('div', 'nickname-screen', nicknameScreen);
-    
-    const title = framework.createElement('h1', '', nicknameContainer);
-    title.textContent = '🎮 BOMBERMAN DOM';
-    
-    const nicknameInput = framework.createElement('input', 'nickname-input', nicknameContainer);
-    nicknameInput.id = 'nickname-input';
-    nicknameInput.type = 'text';
-    nicknameInput.placeholder = 'Enter your nickname';
-    nicknameInput.maxLength = 15;
-    
-    const lineBreak = framework.createElement('br', '', nicknameContainer);
-    
-    const joinBtn = framework.createElement('button', 'btn', nicknameContainer);
-    joinBtn.id = 'join-btn';
-    joinBtn.textContent = 'Join Game';
-    
-    // Add event listeners using framework
-    framework.on(joinBtn, 'click', tryJoin);
-    framework.on(nicknameInput, 'keydown', e => { if (e.key === 'Enter') tryJoin(); });
-}
-
-function createWaitingScreen() {
-    waitingScreen = framework.createElement('div', 'screen', appContainer);
-    waitingScreen.id = 'waiting-screen';
-    
-    const waitingContainer = framework.createElement('div', 'waiting-screen', waitingScreen);
-    
-    const title = framework.createElement('h2', '', waitingContainer);
-    title.textContent = 'Waiting for Players…';
-    
-    const playerCounter = framework.createElement('div', 'player-counter', waitingContainer);
-    playerCounter.id = 'player-counter';
-    playerCounter.textContent = 'Players: 0/4';
-    
-    const countdown = framework.createElement('div', 'countdown', waitingContainer);
-    countdown.id = 'countdown';
-}
-
-function createGameScreen() {
-    gameScreen = framework.createElement('div', 'screen', appContainer);
-    gameScreen.id = 'game-screen';
-    
-    const gameContainer = framework.createElement('div', 'game-container', gameScreen);
-    
-    const gameUI = framework.createElement('div', 'game-ui', gameContainer);
-    
-    const playerInfo = framework.createElement('div', 'player-info', gameUI);
-    playerInfo.id = 'player-info';
-    
-    // Create player stats containers
-    const livesContainer = framework.createElement('div', '', playerInfo);
-    const livesSpan = framework.createElement('span', '', livesContainer);
-    livesSpan.id = 'lives';
-    
-    const bombsContainer = framework.createElement('div', '', playerInfo);
-    const bombsSpan = framework.createElement('span', '', bombsContainer);
-    bombsSpan.id = 'bombs';
-    
-    const powerContainer = framework.createElement('div', '', playerInfo);
-    const powerSpan = framework.createElement('span', '', powerContainer);
-    powerSpan.id = 'power';
-    
-    const speedContainer = framework.createElement('div', '', playerInfo);
-    const speedSpan = framework.createElement('span', '', speedContainer);
-    speedSpan.id = 'speed';
-    
-    const gameMap = framework.createElement('div', 'game-map', gameContainer);
-    gameMap.id = 'game-map';
-}
-
-function createChatOverlay() {
-    chatOverlay = framework.createElement('div', 'chat-overlay', appContainer);
-    
-    const chatMessages = framework.createElement('div', 'chat-messages', chatOverlay);
-    chatMessages.id = 'chat-messages';
-    
-    const chatInputContainer = framework.createElement('div', 'chat-input-container', chatOverlay);
-    
-    const chatInput = framework.createElement('input', 'chat-input', chatInputContainer);
-    chatInput.id = 'chat-input';
-    chatInput.type = 'text';
-    chatInput.placeholder = 'Type message…';
-    
-    const chatSend = framework.createElement('button', 'chat-send', chatInputContainer);
-    chatSend.id = 'chat-send';
-    chatSend.textContent = 'Send';
-    
-    // Add event listeners using framework
-    framework.on(chatSend, 'click', sendChatMsg);
-    framework.on(chatInput, 'keydown', e => { if (e.key === 'Enter') sendChatMsg(); });
-}
-
 function showScreen(id) {
     console.log('Showing screen:', id);
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -146,9 +23,67 @@ function showScreen(id) {
 }
 
 // Nickname join logic
+const joinBtn = document.getElementById('join-btn');
+const nicknameInput = document.getElementById('nickname-input');
+console.log('Join button:', joinBtn);
+console.log('Nickname input:', nicknameInput);
+
+framework.on(joinBtn, 'click', tryJoin);
+framework.on(nicknameInput, 'keydown', e => { if (e.key === 'Enter') tryJoin(); });
+
+function handleConnectionError(err) {
+    console.error('Connection error:', err);
+    
+    // Check if it's a duplicate username error
+    if (err.includes('already taken')) {
+        // Show error message and return to nickname screen
+        showScreen('nickname-screen');
+        
+        // Clear the nickname input and show error
+        const nicknameInput = document.getElementById('nickname-input');
+        if (nicknameInput) {
+            nicknameInput.value = '';
+            nicknameInput.focus();
+        }
+        
+        // Show error message
+        showErrorMessage(err);
+    } else {
+        // For other errors, show alert and return to nickname screen
+        alert(err);
+        showScreen('nickname-screen');
+    }
+}
+
+function showErrorMessage(message) {
+    // Remove any existing error message
+    const existingError = document.getElementById('error-message');
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    // Create error message element
+    const errorDiv = document.createElement('div');
+    errorDiv.id = 'error-message';
+    errorDiv.style.color = '#ff4444';
+    errorDiv.style.backgroundColor = 'rgba(255, 68, 68, 0.1)';
+    errorDiv.style.border = '1px solid #ff4444';
+    errorDiv.style.borderRadius = '8px';
+    errorDiv.style.padding = '1rem';
+    errorDiv.style.marginTop = '1rem';
+    errorDiv.style.textAlign = 'center';
+    errorDiv.style.fontSize = '0.9rem';
+    errorDiv.textContent = message;
+    
+    // Insert after the join button
+    const joinBtn = document.getElementById('join-btn');
+    if (joinBtn && joinBtn.parentNode) {
+        joinBtn.parentNode.insertBefore(errorDiv, joinBtn.nextSibling);
+    }
+}
+
 function tryJoin() {
     console.log('TryJoin called');
-    const nicknameInput = document.getElementById('nickname-input');
     const n = nicknameInput.value.trim();
     console.log('Nickname:', n);
     if (!n) return alert('Please enter a nickname');
@@ -186,59 +121,6 @@ function tryJoin() {
         },
         onWinner: showWinnerMessage,
     });
-}
-
-function handleConnectionError(err) {
-    console.error('Connection error:', err);
-    
-    // Check if it's a duplicate username error
-    if (err.includes('already taken')) {
-        // Show error message and return to nickname screen
-        showScreen('nickname-screen');
-        
-        // Clear the nickname input and show error
-        const nicknameInput = document.getElementById('nickname-input');
-        if (nicknameInput) {
-            nicknameInput.value = '';
-            nicknameInput.focus();
-        }
-        
-        // Show error message
-        showErrorMessage(err);
-    } else {
-        // For other errors, show alert and return to nickname screen
-        alert(err);
-        showScreen('nickname-screen');
-    }
-}
-
-function showErrorMessage(message) {
-    // Remove any existing error message
-    const existingError = document.getElementById('error-message');
-    if (existingError) {
-        existingError.remove();
-    }
-    
-    // Create error message element using framework
-    const errorDiv = framework.createElement('div', '', document.getElementById('nickname-screen'));
-    errorDiv.id = 'error-message';
-    framework.setStyle(errorDiv, {
-        color: '#ff4444',
-        backgroundColor: 'rgba(255, 68, 68, 0.1)',
-        border: '1px solid #ff4444',
-        borderRadius: '8px',
-        padding: '1rem',
-        marginTop: '1rem',
-        textAlign: 'center',
-        fontSize: '0.9rem'
-    });
-    errorDiv.textContent = message;
-    
-    // Insert after the join button
-    const joinBtn = document.getElementById('join-btn');
-    if (joinBtn && joinBtn.parentNode) {
-        joinBtn.parentNode.insertBefore(errorDiv, joinBtn.nextSibling);
-    }
 }
 
 // Smooth rendering function using requestAnimationFrame
@@ -439,8 +321,12 @@ function stopSmoothRendering() {
 }
 
 // Chat logic
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
+framework.on(chatSend, 'click', sendChatMsg);
+framework.on(chatInput, 'keydown', e => { if (e.key === 'Enter') sendChatMsg(); });
+
 function sendChatMsg() {
-    const chatInput = document.getElementById('chat-input');
     const msg = chatInput.value.trim();
     if (!msg) return;
     sendChat(msg);
@@ -459,8 +345,9 @@ function addChat({ nickname, message }) {
     lastMessage = currentMessage;
     
     const box = document.getElementById('chat-messages');
-    const d = framework.createElement('div', '', box);
+    const d = framework.createElement('div');
     d.innerHTML = `<strong>${nickname}:</strong> ${message}`;
+    box.appendChild(d);
     box.scrollTop = box.scrollHeight;
 }
 
@@ -534,7 +421,5 @@ framework.on(document, 'keydown', (e) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
         e.preventDefault();
     }
-});
-
-// Initialize the application when the page loads
-document.addEventListener('DOMContentLoaded', initializeApp); 
+}); 
+ 
