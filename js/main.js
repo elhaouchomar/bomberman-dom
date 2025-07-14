@@ -65,14 +65,6 @@ function showErrorMessage(message) {
     // Create error message element
     const errorDiv = document.createElement('div');
     errorDiv.id = 'error-message';
-    errorDiv.style.color = '#ff4444';
-    errorDiv.style.backgroundColor = 'rgba(255, 68, 68, 0.1)';
-    errorDiv.style.border = '1px solid #ff4444';
-    errorDiv.style.borderRadius = '8px';
-    errorDiv.style.padding = '1rem';
-    errorDiv.style.marginTop = '1rem';
-    errorDiv.style.textAlign = 'center';
-    errorDiv.style.fontSize = '0.9rem';
     errorDiv.textContent = message;
     
     // Insert after the join button
@@ -217,6 +209,14 @@ function isValidPosition(x, y, state) {
 }
 
 function updateWaiting(data) {
+    const chatOverlay = document.querySelector('.chat-overlay');
+    console.log('chatOverlay2######################################', chatOverlay);
+    
+    if (chatOverlay) {
+        console.log('chatOverlay2######################################', chatOverlay);
+        chatOverlay.classList.add('active');
+        // chatOverlay.style.display = 'flex';
+    }
     console.log('Waiting:', data.waiting);
     const countdown = document.getElementById('countdown');
     if (countdown) {
@@ -260,7 +260,8 @@ function startGame() {
     // Hide chat during gameplay
     const chatOverlay = document.querySelector('.chat-overlay');
     if (chatOverlay) {
-        chatOverlay.style.display = 'none';
+        chatOverlay.classList.remove('active');
+        // chatOverlay.style.display = 'none';
     }
 }
 
@@ -268,28 +269,11 @@ function startGame() {
 function showWinnerMessage({ id, nickname }) {
     console.log("winner before selected");
     
-    // Show chat again when game ends
-    const chatOverlay = document.querySelector('.chat-overlay');
-    if (chatOverlay) {
-        chatOverlay.style.display = 'flex';
-    }
     
     let winnerOverlay = document.getElementById('winner-overlay');
     if (!winnerOverlay) {
         winnerOverlay = document.createElement('div');
-        winnerOverlay.id = 'winner-overlay';
-        winnerOverlay.style.position = 'fixed';
-        winnerOverlay.style.top = '0';
-        winnerOverlay.style.left = '0';
-        winnerOverlay.style.width = '100vw';
-        winnerOverlay.style.height = '100vh';
-        winnerOverlay.style.background = 'rgba(0,0,0,0.7)';
-        winnerOverlay.style.display = 'flex';
-        winnerOverlay.style.alignItems = 'center';
-        winnerOverlay.style.justifyContent = 'center';
-        winnerOverlay.style.zIndex = '1000';
-        winnerOverlay.style.fontSize = '3rem';
-        winnerOverlay.style.color = '#fff';
+        winnerOverlay.classList.add('winner-overlay');
         document.body.appendChild(winnerOverlay);
     }
     console.log("winner after selected");
@@ -409,7 +393,7 @@ function handleContinuousMovement() {
 setInterval(handleContinuousMovement, 100); // Send movement every 100ms for held keys
 
 window.addEventListener('error', (event) => {
-    console.error('Unhandled error:', event.error);
+    // console.error('Unhandled error:', event.error);
     alert('An unexpected error occurred. Please reload the page.');
 });
 

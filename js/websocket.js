@@ -20,19 +20,19 @@ export function connectWebSocket({ nickname, onState, onPlayerId, onChat, onPlay
   ws = new WebSocket('ws://10.1.19.2:8081');
 
   ws.onopen = () => {
-    console.log('a new connection is established in frontend');
+    // console.log('a new connection is established in frontend');
     
     ws.send(JSON.stringify({ type: 'join', payload: { nickname } }));
   };
   ws.onmessage = (event) => {
-    console.log('message received from backend');
+    // console.log('message received from backend');
     try {
       const msg = JSON.parse(event.data);
-      console.log('message received from backend', msg);
+      // console.log('message received from backend', msg);
       if (msg.type === 'state') {
         onStateCb && onStateCb(msg.payload);
       } else if (msg.type === 'playerId') {
-        console.log("onPlayerIdCb", onPlayerIdCb(msg.payload));
+        // console.log("onPlayerIdCb", onPlayerIdCb(msg.payload));
         onPlayerIdCb && onPlayerIdCb(msg.payload);
 
       } else if (msg.type === 'chat') {
@@ -58,6 +58,7 @@ export function connectWebSocket({ nickname, onState, onPlayerId, onChat, onPlay
     onError && onError('WebSocket error');
   };
   ws.onclose = () => {
+
     onError && onError('Connection closed');
   };
 }

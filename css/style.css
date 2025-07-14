@@ -150,17 +150,15 @@ body {
 }
 
 .player-info {
-    background: green;
+    background: #22571c;
     padding: 1rem;
     border-radius: 8px;
     width: 800px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border: 2px solid #1a3d16;
 }
-/* .player-info div {
-  width: 150px;
-} */
 .player-info div span img {
   width: 40px;
   height: 40px;
@@ -214,8 +212,57 @@ body {
   flex-direction:column;
   font-size:12px;
   z-index:999;
-  /* background: orangered; */
+display: none;
 }
+.chat-overlay.active{
+  display: flex;
+}
+#error-message{
+    color: #ff4444;
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid #ff4444;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+#winner-overlay{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    font-size: 3rem;
+    color: #fff;
+}
+/* winnerOverlay.id = 'winner-overlay';
+        winnerOverlay.style.position = 'fixed';
+        winnerOverlay.style.top = '0';
+        winnerOverlay.style.left = '0';
+        winnerOverlay.style.width = '100vw';
+        winnerOverlay.style.height = '100vh';
+        winnerOverlay.style.background = 'rgba(0,0,0,0.7)';
+        winnerOverlay.style.display = 'flex';
+        winnerOverlay.style.alignItems = 'center';
+        winnerOverlay.style.justifyContent = 'center';
+        winnerOverlay.style.zIndex = '1000';
+        winnerOverlay.style.fontSize = '3rem';
+        winnerOverlay.style.color = '#fff'; */
+/* errorDiv.id = 'error-message';
+    errorDiv.style.color = '#ff4444';
+    errorDiv.style.backgroundColor = 'rgba(255, 68, 68, 0.1)';
+    errorDiv.style.border = '1px solid #ff4444';
+    errorDiv.style.borderRadius = '8px';
+    errorDiv.style.padding = '1rem';
+    errorDiv.style.marginTop = '1rem';
+    errorDiv.style.textAlign = 'center';
+    errorDiv.style.fontSize = '0.9rem'; */
 
 
 

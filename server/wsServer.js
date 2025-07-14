@@ -61,11 +61,14 @@ function cleanupOrphanedPlayers() {
 
 function startWaitingTimer() {
     if (lobbyState.waitingTimer) return;
-
+// Hide chat during gameplay
+    
     console.log('Starting 20-second waiting timer...');
     let waitingTime = 20;
+    
     broadcast({ type: 'waiting', payload: { waiting: waitingTime } });
-
+    // console.log('chatOverlay3######################################', chatOverlay);
+    
     lobbyState.waitingTimer = setInterval(() => {
         waitingTime--;
         console.log(`Waiting: ${waitingTime} seconds remaining`);
@@ -80,6 +83,7 @@ function startWaitingTimer() {
             }
         }
     }, 1000);
+    
 }
 
 function startCountdown() {
@@ -201,15 +205,17 @@ wss.on('connection', ws => {
     });
 
     ws.on('close', () => {
+        console.log('playerId1######################################', playerId);
         if (joined && playerId) {
             const nick = nickname;
-
+            console.log('playerId2######################################', playerId);
             if (lobbyState.gameStarted) {
+                console.log('playerId3######################################', playerId);
                 gameState.removePlayer(playerId);
             } else {
                 // Remove from lobby
                 lobbyState.players = lobbyState.players.filter(p => p.id !== playerId);
-
+                console.log('playerId4######################################', playerId);
                 // If not enough players, stop timers
                 if (lobbyState.players.length < 2) {
                     clearTimeout(lobbyState.waitingTimer);
@@ -241,13 +247,15 @@ setInterval(() => {
         // Winner detection
         const alivePlayers = Array.from(gameState.players.values()).filter(p => p.alive);
         const totalPlayers = gameState.players.size;
+        console.log('alivePlayers######################################', alivePlayers);
+        console.log('totalPlayers######################################', totalPlayers);
         
-        if (alivePlayers.length === 1 && totalPlayers > 1) {
+        if (alivePlayers.length === 1 ) {
             // Single winner
             const winner = alivePlayers[0];
             broadcast({ type: 'winner', payload: { id: winner.id, nickname: winner.nickname } });
             endGame();
-        } else if (alivePlayers.length === 0 && totalPlayers > 0) {
+        } else if (alivePlayers.length === 0) {
             // All players died simultaneously - it's a tie
             broadcast({ type: 'winner', payload: { id: null, nickname: 'TIE - All players died!' } });
             endGame();

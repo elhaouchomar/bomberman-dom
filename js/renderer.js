@@ -123,9 +123,6 @@ export function renderGame(state, playerId, framework) {
                     const bomb = document.createElement('img');
                     bomb.src = 'images/Bomb.png';
                     bomb.alt = 'Bomb';
-                    // bomb.style.width = '20px';
-                    // bomb.style.height = '20px';
-                    // bomb.style.marginRight = '2px';
                     bombsElement.appendChild(bomb);
                 }
             }
@@ -138,9 +135,6 @@ export function renderGame(state, playerId, framework) {
                     const flame = document.createElement('img');
                     flame.src = 'images/Flames.png';
                     flame.alt = 'Flame';
-                    // flame.style.width = '20px';
-                    // flame.style.height = '20px';
-                    // flame.style.marginRight = '2px';
                     powerElement.appendChild(flame);
                 }
             }
