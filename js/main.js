@@ -273,7 +273,7 @@ function showWinnerMessage({ id, nickname }) {
     let winnerOverlay = document.getElementById('winner-overlay');
     if (!winnerOverlay) {
         winnerOverlay = document.createElement('div');
-        winnerOverlay.classList.add('winner-overlay');
+        winnerOverlay.id = 'winner-overlay';
         document.body.appendChild(winnerOverlay);
     }
     console.log("winner after selected");
