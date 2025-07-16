@@ -1,11 +1,8 @@
 import { createVNode } from '../framework/core.js';
 import store from '../framework/state.js';
 import { socket } from './websocket.js'; // path relative to view.js
+import { renderGame } from './renderer.js';
 
-// console.log(socket);
-
-// import store from '../framework/state.js';
-// import { socket } from './websocket.js';
 document.body.addEventListener('click', (e) => {
   console.log(e.target.id);
   if (e.target.id === 'restart-btn') {
@@ -34,7 +31,7 @@ export function AppView(state) {
     state.screen === 'waiting' && WaitingScreen(state),
     state.screen === 'game' && GameScreen(state),
     // ChatOverlay(state),
-    ErrorBanner(state)
+    // ErrorBanner(state)
   ]);
 }
 
@@ -51,21 +48,26 @@ function WaitingScreen(state) {
     createVNode('h2', {}, 'Waiting for Players…'),
     createVNode('div', { id: 'player-counter', class: 'player-counter' }, `Players: ${state.playerCount}/4`),
     createVNode('div', { id: 'countdown', class: 'countdown' }, 
-      state.waitingTime > 0 ? `Waiting for more players... ${state.waitingTime}s` : `Starting Game... ${state.countdown}s`)
+      state.waitingTime > 0 ? `Waiting for more players... ${state.waitingTime}s` : `Starting Game... ${state.countdown}s`),
+    createVNode('div', { class: 'chat-overlay' }, [
+    createVNode('div', { id: 'chat-messages', class: 'chat-messages' }, state.chatMessages.map(msg =>
+      createVNode('div', {}, `${msg.nickname}: ${msg.message}`)
+    )),
+    createVNode('div', { class: 'chat-input-container' }, [
+      createVNode('input', { id: 'chat-input', class: 'chat-input', type: 'text', placeholder: 'Type message…' }),
+      createVNode('button', { id: 'chat-send', class: 'chat-send' }, 'Send')
+      ])
+    ])
   ]);
 }
 
 function GameScreen(state) {
-  return createVNode('div', { class: 'screen', id: 'game-screen', style: `display:${state.screen === 'game' ? 'block' : 'none'}` }, [
-    createVNode('div', { class: 'game-ui' }, [
-      createVNode('div', { id: 'player-info', class: 'player-info' }, [
-        createVNode('div', {}, [createVNode('span', { id: 'lives' }, `Lives: ${state.playerInfo.lives}`)]),
-        createVNode('div', {}, [createVNode('span', { id: 'bombs' }, `Bombs: ${state.playerInfo.bombs}`)]),
-        createVNode('div', {}, [createVNode('span', { id: 'power' }, `Power: ${state.playerInfo.power}`)]),
-        createVNode('div', {}, [createVNode('span', { id: 'speed' }, `Speed: ${state.playerInfo.speed}`)])
-      ])
-    ]),
-    createVNode('div', { id: 'game-map', class: 'game-map' }, 'Game map here')
+  return createVNode('div', {
+    class: 'screen',
+    id: 'game-screen',
+    style: `display:${state.screen === 'game' ? 'block' : 'none'}`
+  }, [
+    renderGame(state.gameState, state.playerId)
   ]);
 }
 
@@ -157,7 +159,7 @@ socket.onmessage = function(event) {
       // Game ended, show winner
       store.setState({
         winner: msg.payload,
-        screen: 'waiting', // or a dedicated 'winner' screen if you want
+        screen: '', // or a dedicated 'winner' screen if you want
         gameStarted: false,
         error: ''
       });

@@ -19,10 +19,10 @@ let state = {
 
   // Player In-Game Info
   playerInfo: {
-    lives: 0,
-    bombs: 0,
-    power: 0,
-    speed: 0,
+    lives: 3,
+    bombs: 1,
+    power: 1,
+    speed: 1,
     // ...add more as needed
   },
 

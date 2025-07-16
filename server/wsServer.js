@@ -113,7 +113,8 @@ function startGame() {
     lobbyState.gameStarted = true;
     clearInterval(lobbyState.countdownTimer);
     lobbyState.countdownTimer = null;
-
+    console.log('lobbyState.gameStarted', lobbyState.gameStarted);
+    
     // Add all lobby players to the game
     lobbyState.players.forEach((player, index) => {
         const pos = spawnPositions[index % spawnPositions.length];

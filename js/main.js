@@ -3,6 +3,40 @@ import store from '../framework/state.js';
 import { AppView } from './view.js';
 import { socket } from './websocket.js';
 
+document.addEventListener('keydown', (e) => {
+  let payload = null;
+  switch (e.key) {
+    case 'ArrowUp':
+      payload = { type: 'move', dx: 0, dy: -1 };
+      break;
+    case 'ArrowDown':
+      payload = { type: 'move', dx: 0, dy: 1 };
+      break;
+    case 'ArrowLeft':
+    // case 'a':
+    // case 'A':
+      payload = { type: 'move', dx: -1, dy: 0 };
+      break;
+    case 'ArrowRight':
+    // case 'd':
+    // case 'D':
+      payload = { type: 'move', dx: 1, dy: 0 };
+      break;
+    case ' ':
+      payload = { type: 'placeBomb' };
+      break;
+    default:
+      break;
+  }
+  if (payload) {
+    socket.send(JSON.stringify({
+      type: 'action',
+      payload
+    }));
+    e.preventDefault(); // Prevent scrolling
+  }
+});
+
 // 1. Get the root element
 const root = document.body;
 
@@ -55,7 +89,7 @@ socket.onmessage = function(event) {
       store.setState({
         screen: 'game',
         gameStarted: true,
-        chatVisible: true,
+        chatVisible: false,
         error: ''
       });
       console.log("gameStart", store.getState());
@@ -63,8 +97,6 @@ socket.onmessage = function(event) {
     case 'state':
       store.setState({
         gameState: msg.payload,
-        // Optionally update playerInfo if included in payload
-        // playerInfo: msg.payload.playerInfo
       });
       console.log("state", store.getState());
       break;
@@ -96,5 +128,5 @@ socket.onmessage = function(event) {
   }
 };
 
-// 4. Event handlers (join, chat, restart, etc.) can be in view.js or here, but should always update state/send messages, never manipulate DOM directly. 
+
  
