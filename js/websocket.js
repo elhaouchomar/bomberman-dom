@@ -1,4 +1,5 @@
-export let socket = new WebSocket('ws://10.1.19.2:8081');;
+let domaineName = window.location.hostname
+export let socket = new WebSocket(`ws:${domaineName}:8081`);
 let onStateCb = null;
 let onPlayerIdCb = null;
 let onChatCb = null;

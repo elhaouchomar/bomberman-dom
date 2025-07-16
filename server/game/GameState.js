@@ -6,7 +6,7 @@ class GameState {
         this.powerups = new Map();
         this.walls = new Set();
         this.blocks = new Set();
-        this.mapWidth = 800;
+        this.mapWidth = 760;
         this.mapHeight = 600;
         this.tileSize = 40;
     }
