@@ -10,37 +10,52 @@ body {
     color: white;
     overflow: hidden;
 }
-
+.app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 .screen {
-    display: none;
-    width: 100vw;
-    height: 100vh;
+    /* background-color: green; */
+    display: flex;
+    /* width: 100vw;
+    height: 100vh; */
     justify-content: center;
     align-items: center;
     flex-direction: column;
 }
-
+.screen h1 {
+  /* font-size: 3rem; */
+  text-align: center;
+  margin: 24px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
 .screen.active {
     display: flex;
 }
 
-.nickname-screen {
+/* .nickname-screen {
     text-align: center;
-}
+    
+} */
 
-.nickname-screen h1 {
+/* .nickname-screen h1 {
+    background-color: red;
     font-size: 3rem;
     margin-bottom: 2rem;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-}
+} */
 
 .nickname-input {
-    padding: 1rem;
-    font-size: 1.2rem;
+    padding: 16px;
+    font-size: 18px;
     border: none;
     border-radius: 8px;
     margin-bottom: 1rem;
     width: 300px;
+    margin-right: 10px;
     text-align: center;
     outline: none;
 }

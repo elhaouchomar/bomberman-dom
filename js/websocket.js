@@ -1,4 +1,4 @@
-let ws = null;
+export let socket = new WebSocket('ws://10.1.19.2:8081');;
 let onStateCb = null;
 let onPlayerIdCb = null;
 let onChatCb = null;
@@ -17,14 +17,14 @@ export function connectWebSocket({ nickname, onState, onPlayerId, onChat, onPlay
   onGameStartCb = onGameStart;
   onWaitingCb = onWaiting;
   onWinnerCb = onWinner;
-  ws = new WebSocket('ws://10.1.19.2:8081');
-
-  ws.onopen = () => {
+  
+  console.log(socket);
+  socket.onopen = () => {
     // console.log('a new connection is established in frontend');
     
-    ws.send(JSON.stringify({ type: 'join', payload: { nickname } }));
+    socket.send(JSON.stringify({ type: 'join', payload: { nickname } }));
   };
-  ws.onmessage = (event) => {
+  socket.onmessage = (event) => {
     // console.log('message received from backend');
     try {
       const msg = JSON.parse(event.data);
@@ -54,23 +54,23 @@ export function connectWebSocket({ nickname, onState, onPlayerId, onChat, onPlay
       onError && onError('Error parsing server message');
     }
   };
-  ws.onerror = (err) => {
+  socket.onerror = (err) => {
     onError && onError('WebSocket error');
   };
-  ws.onclose = () => {
+  socket.onclose = () => {
 
     onError && onError('Connection closed');
   };
 }
 
 export function sendChat(message) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'chat', payload: { message } }));
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: 'chat', payload: { message } }));
   }
 }
 
 window.sendAction = function (action) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'action', payload: action }));
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: 'action', payload: action }));
   }
 };

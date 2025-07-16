@@ -178,6 +178,7 @@ wss.on('connection', ws => {
                     ws.send(JSON.stringify({ type: 'playerId', payload: playerId }));
                     sendPlayerList();
                     broadcast({ type: 'chat', payload: { nickname: 'System', message: `${nickname} joined` } });
+                    broadcast({type:'waiting', payload: {waiting: 20}})
 
                     // Check if we should start waiting timer or countdown
                     if (lobbyState.players.length >= 4) {
