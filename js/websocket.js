@@ -7,6 +7,7 @@ let onCountdownCb = null;
 let onGameStartCb = null;
 let onWaitingCb = null;
 let onWinnerCb = null;
+let domaiName = window.location.hostname
 
 export function connectWebSocket({ nickname, onState, onPlayerId, onChat, onPlayerList, onCountdown, onGameStart, onWaiting, onError, onWinner }) {
   onStateCb = onState;
@@ -17,7 +18,7 @@ export function connectWebSocket({ nickname, onState, onPlayerId, onChat, onPlay
   onGameStartCb = onGameStart;
   onWaitingCb = onWaiting;
   onWinnerCb = onWinner;
-  ws = new WebSocket('ws://10.1.19.2:8081');
+  ws = new WebSocket(`ws:${domaiName}:8081`);
 
   ws.onopen = () => {
     // console.log('a new connection is established in frontend');
