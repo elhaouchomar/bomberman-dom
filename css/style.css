@@ -10,37 +10,54 @@ body {
     color: white;
     overflow: hidden;
 }
-
+.app {
+  width: 100vw;
+  /* height: 100vh; */
+  display: flex;
+  justify-content: center;
+  margin-top: 100px;
+  /* align-items: center; */
+}
 .screen {
-    display: none;
-    width: 100vw;
-    height: 100vh;
+    /* background-color: green; */
+    display: flex;
+    /* width: 100vw;
+    height: 100vh; */
     justify-content: center;
     align-items: center;
     flex-direction: column;
+    /* background-color: red; */
 }
-
+.screen h1, h2 {
+  /* font-size: 3rem; */
+  text-align: center;
+  margin: 24px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
 .screen.active {
     display: flex;
 }
 
-.nickname-screen {
+/* .nickname-screen {
     text-align: center;
-}
+    
+} */
 
-.nickname-screen h1 {
+/* .nickname-screen h1 {
+    background-color: red;
     font-size: 3rem;
     margin-bottom: 2rem;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-}
+} */
 
 .nickname-input {
-    padding: 1rem;
-    font-size: 1.2rem;
+    padding: 16px;
+    font-size: 18px;
     border: none;
     border-radius: 8px;
     margin-bottom: 1rem;
     width: 300px;
+    margin-right: 10px;
     text-align: center;
     outline: none;
 }
@@ -68,7 +85,8 @@ body {
 
 .player-counter {
     font-size: 2rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
+    text-align: center;
 }
 
 .countdown {
@@ -91,6 +109,12 @@ body {
 }
 
 .chat-messages {
+    /* position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 300px;
+    height: 400px; */
+    /* background-color: red; */
     flex: 1;
     overflow-y: auto;
     padding: 1rem;
@@ -128,29 +152,40 @@ body {
     height: 100vh;
     position: relative;
     overflow: hidden;
+    /* background-color: red; */
+    display: flex;
+    /* justify-content: center; */
+    align-items: center;
+    flex-direction: column;
 }
 
 .game-map {
     width: 804px;
     height: 604px;
-    position: absolute;
+    /* position: absolute;
     top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    left: 50%; */
+    /* transform: translate(-50%, -50%); */
     background: #2d5a27;
     border: 2px solid #1a3d16;
 }
 
 .game-ui {
     display: flex;
-    align-content: center;
-    margin: 20px auto;
+    /* position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%); */
+    /* align-content: center; */
+    margin-bottom: 10px;
     width: 800px;
     height: 100px;
+    /* background-color: red; */
 }
 
 .player-info {
-    background: #22571c;
+    z-index: 1000;
+    background: #41883b;
     padding: 1rem;
     border-radius: 8px;
     width: 800px;
@@ -159,7 +194,7 @@ body {
     align-items: center;
     border: 2px solid #1a3d16;
 }
-.player-info div span img {
+.player-info div img {
   width: 40px;
   height: 40px;
 }
@@ -212,7 +247,7 @@ body {
   flex-direction:column;
   font-size:12px;
   z-index:999;
-display: none;
+/* display: none; */
 }
 .chat-overlay.active{
   display: flex;
@@ -277,6 +312,25 @@ display: none;
   border:2px solid #555;
   background:#111;
   z-index:998;
+}
+
+.player-info img {
+  width: 24px;
+  height: 24px;
+  margin-right: 4px;
+  vertical-align: middle;
+  /* Add more as needed */
+}
+
+.player-info > div {
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.stat-label {
+  font-weight: bold;
+  margin-right: 6px;
 }
 
 

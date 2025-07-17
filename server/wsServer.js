@@ -10,7 +10,7 @@ const spawnPositions = [
     { x: 4, y: gameState.mapHeight - 36 },
     { x: gameState.mapWidth - 36, y: gameState.mapHeight - 36 }
 ];
-let nextPlayerNum = 1;
+// let nextPlayerNum = 1;
 
 // Lobby state
 let lobbyState = {
@@ -113,7 +113,8 @@ function startGame() {
     lobbyState.gameStarted = true;
     clearInterval(lobbyState.countdownTimer);
     lobbyState.countdownTimer = null;
-
+    console.log('lobbyState.gameStarted', lobbyState.gameStarted);
+    
     // Add all lobby players to the game
     lobbyState.players.forEach((player, index) => {
         const pos = spawnPositions[index % spawnPositions.length];
@@ -178,6 +179,7 @@ wss.on('connection', ws => {
                     ws.send(JSON.stringify({ type: 'playerId', payload: playerId }));
                     sendPlayerList();
                     broadcast({ type: 'chat', payload: { nickname: 'System', message: `${nickname} joined` } });
+                    broadcast({type:'waiting', payload: {waiting: 20}})
 
                     // Check if we should start waiting timer or countdown
                     if (lobbyState.players.length >= 4) {
