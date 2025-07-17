@@ -25,7 +25,6 @@ gameState.generateMap();
 
 function broadcast(msg) {
     const str = JSON.stringify(msg);
-    console.log();
     
     wss.clients.forEach(c => {  
         if (c.readyState === WebSocket.OPEN) c.send(str);
@@ -53,7 +52,6 @@ function cleanupOrphanedPlayers() {
         for (const [playerId, player] of gameState.players.entries()) {
             if (!connectedPlayerIds.has(playerId)) {
                 gameState.players.delete(playerId);
-                console.log(`Removed orphaned player: ${player.nickname}`);
             }
         }
     }
@@ -63,22 +61,18 @@ function startWaitingTimer() {
     if (lobbyState.waitingTimer) return;
 // Hide chat during gameplay
     
-    console.log('Starting 20-second waiting timer...');
-    let waitingTime = 20;
+    let waitingTime = 7;
     
     broadcast({ type: 'waiting', payload: { waiting: waitingTime } });
-    // console.log('chatOverlay3######################################', chatOverlay);
     
     lobbyState.waitingTimer = setInterval(() => {
         waitingTime--;
-        console.log(`Waiting: ${waitingTime} seconds remaining`);
         broadcast({ type: 'waiting', payload: { waiting: waitingTime } });
 
         if (waitingTime <= 0) {
             clearInterval(lobbyState.waitingTimer);
             lobbyState.waitingTimer = null;
             if (lobbyState.players.length >= 2 && lobbyState.players.length < 4 && !lobbyState.gameStarted) {
-                console.log('20-second waiting period ended, starting countdown...');
                 startCountdown();
             }
         }
@@ -92,13 +86,11 @@ function startCountdown() {
     clearTimeout(lobbyState.waitingTimer);
     lobbyState.waitingTimer = null;
 
-    console.log('Starting 10-second countdown...');
-    lobbyState.countdown = 10;
+    lobbyState.countdown = 3;
     broadcast({ type: 'countdown', payload: { countdown: lobbyState.countdown } });
 
     lobbyState.countdownTimer = setInterval(() => {
         lobbyState.countdown--;
-        console.log(`Countdown: ${lobbyState.countdown}`);
         broadcast({ type: 'countdown', payload: { countdown: lobbyState.countdown } });
 
         if (lobbyState.countdown <= 0) {
@@ -113,7 +105,6 @@ function startGame() {
     lobbyState.gameStarted = true;
     clearInterval(lobbyState.countdownTimer);
     lobbyState.countdownTimer = null;
-    console.log('lobbyState.gameStarted', lobbyState.gameStarted);
     
     // Add all lobby players to the game
     lobbyState.players.forEach((player, index) => {
@@ -128,10 +119,8 @@ wss.on('connection', ws => {
     let playerId = null;
     let nickname = null;
     let joined = false;
-    console.log('a new connection is established from backend' );
     
     ws.on('message', msg => {
-        console.log('message received from frontend', msg.toString());
         
         try {
             const { type, payload } = JSON.parse(msg);
@@ -175,7 +164,6 @@ wss.on('connection', ws => {
                     lobbyState.players.push({ id: playerId, nickname });
                     ws.playerId = playerId;
                     joined = true;
-                    console.log('playerId', playerId);
                     ws.send(JSON.stringify({ type: 'playerId', payload: playerId }));
                     sendPlayerList();
                     broadcast({ type: 'chat', payload: { nickname: 'System', message: `${nickname} joined` } });
@@ -189,7 +177,6 @@ wss.on('connection', ws => {
                         startCountdown();
                     } else if (lobbyState.players.length >= 2) {
                         // 2+ players but less than 4, start waiting timer
-                        console.log('starting waiting timer');
                         startWaitingTimer();
                     }
                 }
@@ -207,17 +194,13 @@ wss.on('connection', ws => {
     });
 
     ws.on('close', () => {
-        console.log('playerId1######################################', playerId);
         if (joined && playerId) {
             const nick = nickname;
-            console.log('playerId2######################################', playerId);
             if (lobbyState.gameStarted) {
-                console.log('playerId3######################################', playerId);
                 gameState.removePlayer(playerId);
             } else {
                 // Remove from lobby
                 lobbyState.players = lobbyState.players.filter(p => p.id !== playerId);
-                console.log('playerId4######################################', playerId);
                 // If not enough players, stop timers
                 if (lobbyState.players.length < 2) {
                     clearTimeout(lobbyState.waitingTimer);
@@ -249,8 +232,6 @@ setInterval(() => {
         // Winner detection
         const alivePlayers = Array.from(gameState.players.values()).filter(p => p.alive);
         const totalPlayers = gameState.players.size;
-        console.log('alivePlayers######################################', alivePlayers);
-        console.log('totalPlayers######################################', totalPlayers);
         
         if (alivePlayers.length === 1 ) {
             // Single winner

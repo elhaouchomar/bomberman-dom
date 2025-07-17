@@ -46,18 +46,15 @@ function rerender() {
 }
 store.subscribe(rerender);
 rerender(); // Initial render
-console.log(socket);
 
 
 // 3. WebSocket message handler (already provided in previous answers)
 socket.onmessage = function(event) {
   const msg = JSON.parse(event.data);
-  console.log(msg);
   
   switch (msg.type) {
     case 'playerId':
       store.setState({ playerId: msg.payload });
-      console.log("playerId", store.getState());
       
       break;
     case 'playerList':
@@ -66,7 +63,6 @@ socket.onmessage = function(event) {
         playerCount: msg.payload.length,
         error: ''
       });
-      console.log("playerList", store.getState());
       break;
     case 'waiting':
       store.setState({
@@ -75,7 +71,6 @@ socket.onmessage = function(event) {
         chatVisible: true,
         error: ''
       });
-      console.log("waiting", store.getState());
       break;
     case 'countdown':
       store.setState({
@@ -83,7 +78,6 @@ socket.onmessage = function(event) {
         countdown: msg.payload.countdown,
         error: ''
       });
-      console.log("countdown", store.getState());
       break;
     case 'gameStart':
       store.setState({
@@ -92,20 +86,17 @@ socket.onmessage = function(event) {
         chatVisible: false,
         error: ''
       });
-      console.log("gameStart", store.getState());
       break;
     case 'state':
       store.setState({
         gameState: msg.payload,
       });
-      console.log("state", store.getState());
       break;
     case 'chat':
       store.setState({
         chatMessages: [...store.getState().chatMessages, msg.payload],
         error: ''
       });
-      console.log("chat", store.getState());
       break;
     case 'winner':
         
@@ -115,11 +106,9 @@ socket.onmessage = function(event) {
         gameStarted: false,
         error: ''
       });
-      console.log("winner", store.getState());
       break;
     case 'error':
       store.setState({ error: msg.payload.message });
-      console.log("error", store.getState());
       break;
     default:
         

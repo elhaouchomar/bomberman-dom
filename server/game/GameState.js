@@ -15,20 +15,16 @@ class GameState {
         this.players.set(id, {
             id, nickname,
             x: pos.x, y: pos.y,
-            lives: 3, bombs: 1, power: 1, speed: 1,
+            lives: 3, bombs: 1, power: 1, speed: 4,
             maxBombs: 1, activeBombs: 0, alive: true
         });
     }
     removePlayer(id) {
-        console.log('removePlayer######################################', id);
         const player = this.players.get(id);
         if (player) {
-            console.log('player allive######################################', player.alive);
             player.alive = false;
         }
-        console.log('player allive######################################', player.alive);
         this.players.delete(id);
-        console.log(this.players);
         
     }
 
@@ -50,26 +46,30 @@ class GameState {
     
         // Place indestructible walls in a grid pattern
         for (let x = 1; x < this.mapWidth / this.tileSize; x += 2) {
+
             for (let y = 1; y < this.mapHeight / this.tileSize; y += 2) {
+
                 this.walls.add(`${x},${y}`);
             }
         }
     
-        // Place destructible blocks randomly, avoiding player spawn areas
+        // Place canBomb blocks randomly, avoiding player spawn areas
         for (let x = 0; x < this.mapWidth / this.tileSize; x++) {
+            
             for (let y = 0; y < this.mapHeight / this.tileSize; y++) {
+            
                 const position = `${x},${y}`;
                 if (this.walls.has(position)) continue;
     
                 // Avoid spawn areas (corners)
-                const isSafe = (x <= 2 && y <= 2) ||
+                const notSafe = (x <= 2 && y <= 2) ||
                              (x >= this.mapWidth / this.tileSize - 3 && y <= 2) ||
                              (x <= 2 && y >= this.mapHeight / this.tileSize - 3) ||
                              (x >= this.mapWidth / this.tileSize - 3 && y >= this.mapHeight / this.tileSize - 3);
-                if (isSafe) continue;
+                if (notSafe) continue;
     
-                // 30% chance to place a block
-                if (Math.random() < 0.3) {
+                // Randomness dyal canBomb Blocks
+                if (Math.random() < .4) {
                     this.blocks.add(position);
                 }
             }
@@ -139,7 +139,7 @@ class GameState {
     }
 
     maybeSpawnPowerup(x, y) {
-        if (Math.random() < 0.3) {
+        if (Math.random() < 0.7) {
             const powerupTypes = ['bombs', 'flames', 'speed'];
             const randomType = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
             const powerupId = `${x},${y}`;

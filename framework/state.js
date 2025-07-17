@@ -22,7 +22,7 @@ let state = {
     lives: 3,
     bombs: 1,
     power: 1,
-    speed: 1,
+    speed: 3,
     // ...add more as needed
   },
 

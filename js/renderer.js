@@ -1,6 +1,7 @@
 import { createVNode } from '../framework/core.js';
 
 export function renderGame(state, playerId) {
+    
     // Helper to render powerups
     const renderPowerups = () =>
         state.powerups.map(powerup =>
@@ -43,10 +44,10 @@ export function renderGame(state, playerId) {
         state.players.filter(p => p.alive).map(p =>
             createVNode('img', {
                 class: `player ${p.id === playerId ? 'me' : ''}`,
-                src: 'images/yuffiekisaragi.png',
+                src: 'images/BomberMan.png',
                 alt: p.nickname,
                 title: p.nickname,
-                style: `left: ${p.x}px; top: ${p.y}px; width: 32px; height: 32px; position: absolute; z-index: 10;`
+                style: `left: ${p.x}px; top: ${p.y}px; width: 40px; height: 40px; position: absolute; z-index: 10;`
             })
         );
 

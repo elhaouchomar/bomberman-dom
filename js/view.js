@@ -4,7 +4,6 @@ import { socket } from './websocket.js'; // path relative to view.js
 import { renderGame } from './renderer.js';
 
 document.body.addEventListener('click', (e) => {
-  console.log(e.target.id);
   if (e.target.id === 'restart-btn') {
     socket.send(JSON.stringify({ type: 'restart' }));
     // Optionally, update state/UI if you want to show a loading state, etc.
@@ -13,7 +12,6 @@ document.body.addEventListener('click', (e) => {
 });
 
 document.body.addEventListener('keyup', (e) => {
-    console.log(e.target.value);
     
   if (e.target.id === 'nickname-input' && e.key === 'Enter') {
     document.getElementById('join-btn').click();
@@ -25,7 +23,6 @@ document.body.addEventListener('keyup', (e) => {
 });
 
 export function AppView(state) {
-    console.log(state);
   return createVNode('div', {class: 'app'}, [
     state.screen === 'nickname' && NicknameScreen(state),
     state.screen === 'waiting' && WaitingScreen(state),
@@ -44,7 +41,7 @@ function NicknameScreen(state) {
 }
 
 function WaitingScreen(state) {
-  return createVNode('div', { class: 'screen', id: 'waiting-screen', style: `display:${state.screen === 'waiting' ? 'block' : 'none'}` }, [
+  return createVNode('div', { class: 'screen', id: 'waiting-screen', style: `display:'block'` }, [
     createVNode('h2', {}, 'Waiting for Players…'),
     createVNode('div', { id: 'player-counter', class: 'player-counter' }, `Players: ${state.playerCount}/4`),
     createVNode('div', { id: 'countdown', class: 'countdown' }, 
@@ -209,7 +206,6 @@ document.body.addEventListener('keydown', (e) => {
 
 document.body.addEventListener('click', (e) => {
   if (e.target.id === 'join-btn') {
-    console.log('Join button clicked!');
     const nicknameInput = document.getElementById('nickname-input');
     const nickname = nicknameInput ? nicknameInput.value.trim() : '';
 
