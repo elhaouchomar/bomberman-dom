@@ -5,8 +5,8 @@ import GameState from './game/GameState.js';
 const PORT = 8081;
 const MAX_PLAYERS_PER_ROOM     = 4;
 const MIN_PLAYERS_TO_START     = 2;
-const WAIT_BEFORE_COUNTDOWN_MS = 20_000;
-const COUNTDOWN_MS             = 10_000;
+const WAIT_BEFORE_COUNTDOWN_MS = 2000;
+const COUNTDOWN_MS             = 1000;
 const TICK_RATE_MS             = 50; // ~20fps simulation tick
 
 let ROOM_SEQ = 1;
@@ -49,7 +49,9 @@ function roomBroadcast(room, msg) {
   const str = JSON.stringify(msg);
   for (const p of room.lobby.players) {
     if (p.ws.readyState === WebSocket.OPEN) {
-      p.ws.send(str);
+        
+        
+      p.ws.send(str);      
     }
   }
 }

@@ -1,12 +1,12 @@
 import { createVNode } from '../framework/core.js';
 import store from '../framework/state.js';
-import { socket } from './websocket.js';
+import { socket } from './main.js';
 import { renderGame } from './renderer.js';
 
 
 // Handle click events
 export function attachViewGlobalEvents() {
-document.body.addEventListener('click', (e) => {
+document.body.onclick = (e) => {
   if (e.target.id === 'join-btn') {
     const nicknameInput = document.getElementById('nickname-input');
     const nickname = nicknameInput ? nicknameInput.value.trim() : '';
@@ -31,17 +31,18 @@ document.body.addEventListener('click', (e) => {
     socket.send(JSON.stringify({ type: 'restart' }));
     store.setState({ screen: 'waiting', error: '', winner: null });
   }
-});
+};
 
 // Handle Enter key
-document.body.addEventListener('keydown', (e) => {
+document.body.onkeydown = (e) => {
   if (e.target.id === 'nickname-input' && e.key === 'Enter') {
     document.getElementById('join-btn').click();
+  
   }
   if (e.target.id === 'chat-input' && e.key === 'Enter') {
     document.getElementById('chat-send').click();
   }
-});
+}
 }
 
 export function AppView(state) {
@@ -92,7 +93,7 @@ function GameScreen(state) {
   return createVNode('div', {
     class: 'screen',
     id: 'game-screen',
-    style: `display:${state.screen === 'game' ? 'block' : 'none'}`
+    style: `display:${state.screen === 'game' ? 'block' : 'none'}`,
   }, [
     renderGame(state.gameState, state.playerId),
     state.winner && WinnerBanner(state.winner)

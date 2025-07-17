@@ -15,7 +15,7 @@ class GameState {
         this.players.set(id, {
             id, nickname,
             x: pos.x, y: pos.y,
-            lives: 3, bombs: 1, power: 1, speed: 4,
+            lives: 3, bombs: 1, power: 1, speed: 1,
             maxBombs: 1, activeBombs: 0, alive: true
         });
     }
@@ -25,13 +25,13 @@ class GameState {
             player.alive = false;
         }
         this.players.delete(id);
-        
+
     }
 
     isValidPosition(x, y) {
-        if (x < 0 || y < 0 || x + 31 >= this.mapWidth || y + 31 >= this.mapHeight) return false;
+        if (x < 0 || y < 0 || x + 32 >= this.mapWidth || y + 32 >= this.mapHeight) return false;
         const corners = [
-            [x, y], [x + 31, y], [x, y + 31], [x + 31, y + 31]
+            [x, y], [x + 32, y], [x, y + 32], [x + 32, y + 32]
         ];
         return corners.every(([cx, cy]) => {
             const position = `${Math.floor(cx / this.tileSize)},${Math.floor(cy / this.tileSize)}`;
@@ -43,7 +43,7 @@ class GameState {
         // Clear previous map
         this.walls.clear();
         this.blocks.clear();
-    
+
         // Place indestructible walls in a grid pattern
         for (let x = 1; x < this.mapWidth / this.tileSize; x += 2) {
 
@@ -52,22 +52,22 @@ class GameState {
                 this.walls.add(`${x},${y}`);
             }
         }
-    
+
         // Place canBomb blocks randomly, avoiding player spawn areas
         for (let x = 0; x < this.mapWidth / this.tileSize; x++) {
-            
+
             for (let y = 0; y < this.mapHeight / this.tileSize; y++) {
-            
+
                 const position = `${x},${y}`;
                 if (this.walls.has(position)) continue;
-    
+
                 // Avoid spawn areas (corners)
                 const notSafe = (x <= 2 && y <= 2) ||
-                             (x >= this.mapWidth / this.tileSize - 3 && y <= 2) ||
-                             (x <= 2 && y >= this.mapHeight / this.tileSize - 3) ||
-                             (x >= this.mapWidth / this.tileSize - 3 && y >= this.mapHeight / this.tileSize - 3);
+                    (x >= this.mapWidth / this.tileSize - 3 && y <= 2) ||
+                    (x <= 2 && y >= this.mapHeight / this.tileSize - 3) ||
+                    (x >= this.mapWidth / this.tileSize - 3 && y >= this.mapHeight / this.tileSize - 3);
                 if (notSafe) continue;
-    
+
                 // Randomness dyal canBomb Blocks
                 if (Math.random() < .4) {
                     this.blocks.add(position);
@@ -94,8 +94,8 @@ class GameState {
             }
             case 'placeBomb': {
                 if (player.activeBombs >= player.maxBombs) return;
-                const bx = Math.floor((player.x + 16) / this.tileSize) * this.tileSize; // 16 is half of the player's width
-                const by = Math.floor((player.y + 16) / this.tileSize) * this.tileSize; // 16 is half of the player's heightg
+                const bx = Math.floor((player.x + 20) / this.tileSize) * this.tileSize; // 16 is half of the player's width
+                const by = Math.floor((player.y + 20) / this.tileSize) * this.tileSize; // 16 is half of the player's heightg
                 const id = `${bx},${by}`;
                 if (this.bombs.has(id)) return;
                 this.bombs.set(id, {

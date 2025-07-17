@@ -1,13 +1,23 @@
 ---> To Fix
-4 players problem
-document.body.addEventListener x7
-getElementById x6
+document.body.addEventListener x3 #################### DONE
+
+getElementById x4
+
+
+
+
 separate websocketServer and websocket
-Responsive
+4 players problem
+Keep Chat also in playing game (popup) ------> Responsive
+players images
+
+
+
 Ayoub----> styling
-Winner
-Restart -----> refrech
 implement Grid system in movement
 Check Audit Subject page
 Translate not top and left
-Keep Chat also in playing game (popup)
+
+
+Restart -----> refrech
+Winner

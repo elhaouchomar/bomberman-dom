@@ -48,10 +48,14 @@ export const store = {
     return { ...state };
   },
 
-  setState(partial) {    
+  setState(partial) {
+    if (!partial) return;
+
     state = { ...state, ...partial };   // simple, generic merge
-    
-    subscribers?.forEach( fn => { fn()});    // notify after every commit
+
+    subscribers?.forEach(fn => {      
+      fn()
+    });    // notify after every commit
   },
 
   /* subscribe returns an "unsubscribe" function */
