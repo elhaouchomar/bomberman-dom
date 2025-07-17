@@ -6,7 +6,7 @@ class GameState {
         this.powerups = new Map();
         this.walls = new Set();
         this.blocks = new Set();
-        this.mapWidth = 800;
+        this.mapWidth = 760;
         this.mapHeight = 600;
         this.tileSize = 40;
     }
@@ -20,7 +20,16 @@ class GameState {
         });
     }
     removePlayer(id) {
+        console.log('removePlayer######################################', id);
+        const player = this.players.get(id);
+        if (player) {
+            console.log('player allive######################################', player.alive);
+            player.alive = false;
+        }
+        console.log('player allive######################################', player.alive);
         this.players.delete(id);
+        console.log(this.players);
+        
     }
 
     isValidPosition(x, y) {
@@ -29,27 +38,42 @@ class GameState {
             [x, y], [x + 31, y], [x, y + 31], [x + 31, y + 31]
         ];
         return corners.every(([cx, cy]) => {
-            const key = `${Math.floor(cx / this.tileSize)},${Math.floor(cy / this.tileSize)}`;
-            return !this.walls.has(key) && !this.blocks.has(key);
+            const position = `${Math.floor(cx / this.tileSize)},${Math.floor(cy / this.tileSize)}`;
+            return !this.walls.has(position) && !this.blocks.has(position);
         });
     }
 
-    generateMap(seed) {
-        function rng() { let t = seed += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }
-        for (let x = 1; x < this.mapWidth / this.tileSize; x += 2)
-            for (let y = 1; y < this.mapHeight / this.tileSize; y += 2)
+    generateMap() {
+        // Clear previous map
+        this.walls.clear();
+        this.blocks.clear();
+    
+        // Place indestructible walls in a grid pattern
+        for (let x = 1; x < this.mapWidth / this.tileSize; x += 2) {
+            for (let y = 1; y < this.mapHeight / this.tileSize; y += 2) {
                 this.walls.add(`${x},${y}`);
-        for (let x = 0; x < this.mapWidth / this.tileSize; x++)
-            for (let y = 0; y < this.mapHeight / this.tileSize; y++) {
-                const key = `${x},${y}`;
-                if (this.walls.has(key)) continue;
-                const safe = (x <= 2 && y <= 2) ||
-                    (x >= this.mapWidth / this.tileSize - 3 && y <= 2) ||
-                    (x <= 2 && y >= this.mapHeight / this.tileSize - 3) ||
-                    (x >= this.mapWidth / this.tileSize - 3 && y >= this.mapHeight / this.tileSize - 3);
-                if (safe) continue;
-                if (rng() < 0.3) this.blocks.add(key);
             }
+        }
+    
+        // Place destructible blocks randomly, avoiding player spawn areas
+        for (let x = 0; x < this.mapWidth / this.tileSize; x++) {
+            for (let y = 0; y < this.mapHeight / this.tileSize; y++) {
+                const position = `${x},${y}`;
+                if (this.walls.has(position)) continue;
+    
+                // Avoid spawn areas (corners)
+                const isSafe = (x <= 2 && y <= 2) ||
+                             (x >= this.mapWidth / this.tileSize - 3 && y <= 2) ||
+                             (x <= 2 && y >= this.mapHeight / this.tileSize - 3) ||
+                             (x >= this.mapWidth / this.tileSize - 3 && y >= this.mapHeight / this.tileSize - 3);
+                if (isSafe) continue;
+    
+                // 30% chance to place a block
+                if (Math.random() < 0.3) {
+                    this.blocks.add(position);
+                }
+            }
+        }
     }
 
     applyAction(playerId, action) {
@@ -70,8 +94,8 @@ class GameState {
             }
             case 'placeBomb': {
                 if (player.activeBombs >= player.maxBombs) return;
-                const bx = Math.floor((player.x + 16) / this.tileSize) * this.tileSize;
-                const by = Math.floor((player.y + 16) / this.tileSize) * this.tileSize;
+                const bx = Math.floor((player.x + 16) / this.tileSize) * this.tileSize; // 16 is half of the player's width
+                const by = Math.floor((player.y + 16) / this.tileSize) * this.tileSize; // 16 is half of the player's heightg
                 const id = `${bx},${by}`;
                 if (this.bombs.has(id)) return;
                 this.bombs.set(id, {

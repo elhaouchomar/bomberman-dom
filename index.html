@@ -6,47 +6,8 @@
   <title>Bomberman DOM</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
-
 <body>
-
-  <div class="screen active" id="nickname-screen">
-    <div class="nickname-screen">
-      <h1>🎮 BOMBERMAN DOM</h1>
-      <input id="nickname-input" class="nickname-input" type="text" placeholder="Enter your nickname" maxlength="15" />
-      <br />
-      <button id="join-btn" class="btn">Join Game</button>
-    </div>
-  </div>
-
-  <div class="screen" id="waiting-screen">
-    <div class="waiting-screen">
-      <h2>Waiting for Players…</h2>
-      <div id="player-counter" class="player-counter">Players: 0/4</div>
-      <div id="countdown" class="countdown"></div>
-    </div>
-  </div>
-
-  <div class="screen" id="game-screen">
-    <div class="game-container">
-      <div class="game-ui">
-        <div id="player-info" class="player-info">
-          <div>Lives: <span id="lives">3</span></div>
-          <div>Bombs: <span id="bombs">1</span></div>
-          <div>Power: <span id="power">1</span></div>
-          <div>Speed: <span id="speed">1</span></div>
-        </div>
-      </div>
-      <div id="game-map" class="game-map"></div>
-    </div>
-  </div>
-
-  <div class="chat-overlay">
-    <div id="chat-messages" class="chat-messages"></div>
-    <div class="chat-input-container">
-      <input id="chat-input" class="chat-input" type="text" placeholder="Type message…" />
-      <button id="chat-send" class="chat-send">Send</button>
-    </div>
-  </div>
+  <div id="app"></div>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
