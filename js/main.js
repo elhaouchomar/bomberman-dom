@@ -1,46 +1,29 @@
 import { render } from '../framework/core.js';
 import store from '../framework/state.js';
-import { AppView } from './view.js';
-import { socket } from './websocket.js';
+import { AppView, attachViewGlobalEvents } from './view.js';
+import { sendAction } from './websocket.js';
 
+attachViewGlobalEvents();
+
+// Keyboard controls
 document.addEventListener('keydown', (e) => {
   let payload = null;
   switch (e.key) {
-    case 'ArrowUp':
-      payload = { type: 'move', dx: 0, dy: -1 };
-      break;
-    case 'ArrowDown':
-      payload = { type: 'move', dx: 0, dy: 1 };
-      break;
-    case 'ArrowLeft':
-    // case 'a':
-    // case 'A':
-      payload = { type: 'move', dx: -1, dy: 0 };
-      break;
-    case 'ArrowRight':
-    // case 'd':
-    // case 'D':
-      payload = { type: 'move', dx: 1, dy: 0 };
-      break;
-    case ' ':
-      payload = { type: 'placeBomb' };
-      break;
-    default:
-      break;
+    case 'ArrowUp':    payload = { type: 'move', dx: 0,  dy: -1 }; break;
+    case 'ArrowDown':  payload = { type: 'move', dx: 0,  dy:  1 }; break;
+    case 'ArrowLeft':  payload = { type: 'move', dx: -1, dy:  0 }; break;
+    case 'ArrowRight': payload = { type: 'move', dx:  1, dy:  0 }; break;
+    case ' ':          payload = { type: 'placeBomb' }; break;
+    default: break;
   }
   if (payload) {
-    socket.send(JSON.stringify({
-      type: 'action',
-      payload
-    }));
-    e.preventDefault(); // Prevent scrolling
+    sendAction(payload);
+    e.preventDefault();
   }
 });
 
-// 1. Get the root element
+// Render on state change
 const root = document.body;
-
-// 2. Render the app whenever state changes
 function rerender() {
   render(AppView(store.getState()), root);
 }
