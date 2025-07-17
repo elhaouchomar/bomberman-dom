@@ -39,7 +39,7 @@ store.subscribe(rerender);
 rerender();    // initial paint
 
 
-// 3. WebSocket message handler (already provided in previous answers)
+// WebSocket message handler
 socket.onmessage = function (event) {
   const msg = JSON.parse(event.data);
   console.log(msg);
@@ -114,6 +114,5 @@ socket.onmessage = function (event) {
     default:
 
       break;
-
   }
 };
