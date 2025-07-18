@@ -408,3 +408,45 @@ body {
   padding: 0.75rem 1.5rem;
   font-size: 1.25rem;
 }
+:root {
+  --pixel-size: 1;
+}
+
+.Character {
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
+  position: relative;
+}
+
+.Character_shadow {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+}
+
+.Character_spritesheet {
+  width: 128px; /* 4 frames * 32px */
+  position: absolute;
+  animation: moveSpritesheet 1s steps(4) infinite;
+}
+
+/* Directional frames */
+.face-down { top: 0; }
+.face-right { top: -32px; }
+.face-up    { top: -64px; }
+.face-left  { top: -96px; }
+
+.pixelart {
+  image-rendering: pixelated;
+}
+
+.Character.me {
+  outline: 2px solid yellow;
+  box-shadow: 0 0 5px black;
+}
+
+@keyframes moveSpritesheet {
+  from { transform: translate3d(0px, 0, 0); }
+  to   { transform: translate3d(-100%, 0, 0); }
+}

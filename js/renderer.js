@@ -41,14 +41,32 @@ export function renderGame(state, playerId) {
     // Helper to render players
     const renderPlayers = () =>
         state.players.filter(p => p.alive).map(p =>
-            createVNode('img', {
-                class: `player ${p.id === playerId ? 'me' : ''}`,
-                src: 'images/yuffiekisaragi.png',
-                alt: p.nickname,
-                title: p.nickname,
-                style: `left: ${p.x}px; top: ${p.y}px; width: 32px; height: 32px; position: absolute; z-index: 10;`
-            })
+            createVNode('div', {
+                class: `Character ${p.id === playerId ? 'me' : ''}`,
+                style: `
+        left: ${p.x}px;
+        top: ${p.y}px;
+        position: absolute;
+        z-index: 10;
+        width: 32px;
+        height: 32px;
+      `
+            }, [
+                createVNode('img', {
+                    class: 'Character_shadow pixelart',
+                    src: 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/21542/DemoRpgCharacterShadow.png',
+                    alt: 'Shadow'
+                }),
+                createVNode('img', {
+                    class: `Character_spritesheet pixelart face-${p.dir || 'down'}`,
+                    src: 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/21542/DemoRpgCharacter.png',
+                    alt: p.nickname,
+                    title: p.nickname
+                })
+            ])
         );
+
+
 
     // Helper to render walls
     const renderWalls = () =>
