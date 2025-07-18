@@ -4,7 +4,7 @@ let socket = null;
 export { socket };
 
 let lastNickname = '';
-let lastRoomId   = null;  
+let lastRoomId = null;
 
 function wsURL() {
   const host = window.location.hostname || 'localhost';
@@ -142,12 +142,15 @@ function handleMessage(evt) {
       break;
     }
 
-    case 'winner': {
+    case 'win': case 'lose': {      
+      console.log(type);
+      
       store.setState({
         winner: payload,
-        screen: 'waiting',
+        screen: 'winner',
         gameStarted: false,
-        error: ''
+        error: '',
+        type: type
       });
       break;
     }

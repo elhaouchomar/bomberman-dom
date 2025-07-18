@@ -109,5 +109,5 @@ export function renderGame(state, playerId) {
 //     // Assign color based on id (simple hash)
 //     const colors = ['#ff4444', '#4444ff', '#44ff44', '#ffff44'];
 //     const n = parseInt(id.replace(/\D/g, ''), 10) || 0;
-//     return colors[n % colors.length];
+//     return colors[n % colors.lengtrenderBlocksh];
 // } 

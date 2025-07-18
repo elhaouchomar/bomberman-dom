@@ -6,42 +6,42 @@ import { renderGame } from './renderer.js';
 
 // Handle click events
 export function attachViewGlobalEvents() {
-document.body.addEventListener('click', (e) => {
-  if (e.target.id === 'join-btn') {
-    const nicknameInput = document.getElementById('nickname-input');
-    const nickname = nicknameInput ? nicknameInput.value.trim() : '';
-    if (!nickname) {
-      store.setState({ error: 'Please enter a nickname.' });
-      return;
+  document.body.onclick((e) => {
+    if (e.target.id === 'join-btn') {
+      const nicknameInput = document.getElementById('nickname-input');
+      const nickname = nicknameInput ? nicknameInput.value.trim() : '';
+      if (!nickname) {
+        store.setState({ error: 'Please enter a nickname.' });
+        return;
+      }
+
+      store.setState({ nickname, error: '' });
+      socket.send(JSON.stringify({ type: 'join', payload: { nickname } }));
     }
 
-    store.setState({ nickname, error: '' });
-    socket.send(JSON.stringify({ type: 'join', payload: { nickname } }));
-  }
+    if (e.target.id === 'chat-send') {
+      const input = document.getElementById('chat-input');
+      const message = input.value.trim();
+      if (!message) return;
+      socket.send(JSON.stringify({ type: 'chat', payload: { message } }));
+      input.value = '';
+    }
 
-  if (e.target.id === 'chat-send') {
-    const input = document.getElementById('chat-input');
-    const message = input.value.trim();
-    if (!message) return;
-    socket.send(JSON.stringify({ type: 'chat', payload: { message } }));
-    input.value = '';
-  }
+    if (e.target.id === 'restart-btn') {
+      socket.send(JSON.stringify({ type: 'restart' }));
+      store.setState({ screen: 'waiting', error: '', winner: null });
+    }
+  });
 
-  if (e.target.id === 'restart-btn') {
-    socket.send(JSON.stringify({ type: 'restart' }));
-    store.setState({ screen: 'waiting', error: '', winner: null });
-  }
-});
-
-// Handle Enter key
-document.body.addEventListener('keydown', (e) => {
-  if (e.target.id === 'nickname-input' && e.key === 'Enter') {
-    document.getElementById('join-btn').click();
-  }
-  if (e.target.id === 'chat-input' && e.key === 'Enter') {
-    document.getElementById('chat-send').click();
-  }
-});
+  // Handle Enter key
+  document.body.onkeydown((e) => {
+    if (e.target.id === 'nickname-input' && e.key === 'Enter') {
+      document.getElementById('join-btn').click();
+    }
+    if (e.target.id === 'chat-input' && e.key === 'Enter') {
+      document.getElementById('chat-send').click();
+    }
+  });
 }
 
 export function AppView(state) {
@@ -49,6 +49,7 @@ export function AppView(state) {
     state.screen === 'nickname' && NicknameScreen(state),
     state.screen === 'waiting' && WaitingScreen(state),
     state.screen === 'game' && GameScreen(state),
+    state.screen === 'winner' && WinnerBanner(state)
   ]);
 }
 
@@ -89,13 +90,13 @@ function WaitingScreen(state) {
 }
 
 function GameScreen(state) {
+
   return createVNode('div', {
     class: 'screen',
     id: 'game-screen',
     style: `display:${state.screen === 'game' ? 'block' : 'none'}`
   }, [
-    renderGame(state.gameState, state.playerId),
-    state.winner && WinnerBanner(state.winner)
+    renderGame(state.gameState, state.playerId)
   ]);
 }
 
@@ -124,9 +125,9 @@ function ErrorBanner(state) {
     : null;
 }
 
-function WinnerBanner(nickname) {
+function WinnerBanner(data) {
   return createVNode('div', { class: 'winner-overlay' }, [
-    createVNode('div', { class: 'winner-banner' }, `🏆 Winner: ${nickname}`),
+    createVNode('div', { class: 'winner-banner' }, `${data.winner.nickname} you are ${data.type}`),
     createVNode('button', { id: 'restart-btn', class: 'btn restart-btn' }, 'Restart Game')
   ]);
 }

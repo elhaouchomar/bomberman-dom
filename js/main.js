@@ -6,7 +6,7 @@ import { sendAction } from './websocket.js';
 attachViewGlobalEvents();
 
 // Keyboard controls
-document.addEventListener('keydown', (e) => {
+document.onkeydown( (e) => {
   let payload = null;
   switch (e.key) {
     case 'ArrowUp':    payload = { type: 'move', dx: 0,  dy: -1 }; break;
