@@ -46,6 +46,7 @@ export function AppView(state) {
   return createVNode('div', { class: 'app' }, [
     state.screen === 'nickname' && NicknameScreen(state),
     state.screen === 'waiting' && WaitingScreen(state),
+    state.screen === 'waiting' && ChatOverlay(state),
     state.screen === 'game' && GameScreen(state),
     state.screen === 'winner' && WinnerBanner(state)
   ]);
@@ -87,7 +88,6 @@ function WaitingScreen(state) {
         ? `Waiting for more players... ${state.waitingTime}s`
         : `Starting Game... ${state.countdown || 20}s`
     ),
-    ChatOverlay(state),
     ErrorBanner(state)
   ]);
 }

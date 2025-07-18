@@ -2,7 +2,6 @@ import { events } from './event.js';
 
 export const refs = {};
 
-
 // vnode factory
 export const createVNode = (tag, attrs = {}, children = []) => ({
   tag,
