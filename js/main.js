@@ -6,7 +6,7 @@ import { sendAction } from './websocket.js';
 attachViewGlobalEvents();
 
 // Keyboard controls
-document.onkeydown( (e) => {
+document.onkeydown = function (e) {
   let payload = null;
   switch (e.key) {
     case 'ArrowUp':    payload = { type: 'move', dx: 0,  dy: -1 }; break;
@@ -20,7 +20,7 @@ document.onkeydown( (e) => {
     sendAction(payload);
     e.preventDefault();
   }
-});
+}
 
 // Render on state change
 const root = document.body;

@@ -328,14 +328,14 @@ body {
 
 .game-map{
   position:relative;
-  background:#2d5a27 url('images/tiles/grass.png') repeat;
+  background:#2d5a27 url('../images/grass.png') repeat;
   border:4px solid #1a3d16;
   box-shadow:0 0 16px rgba(0,0,0,.9);
   image-rendering:pixelated;
   overflow:hidden;
 }
-.wall{background:#555 url('images/tiles/wall.png') center/cover no-repeat;}
-.block{background:#8B4513 url('images/tiles/block.png') center/cover no-repeat;}
+.wall{background:#555 url('images/wall.png') center/cover no-repeat;}
+.block{background:#8B4513 url('images/block.png') center/cover no-repeat;}
 
 .chat-overlay{
   font-family:var(--font-ui);

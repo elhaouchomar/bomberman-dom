@@ -8,8 +8,8 @@ export function renderGame(state, playerId) {
                 class: `powerup ${powerup.type}`,
                 src: powerup.type === 'bombs' ? 'images/bombGift.png'
                     : powerup.type === 'flames' ? 'images/flamGift.png'
-                    : powerup.type === 'speed' ? 'images/speedGift.png'
-                    : '',
+                        : powerup.type === 'speed' ? 'images/speedGift.png'
+                            : '',
                 alt: `${powerup.type} Power-up`,
                 title: `${powerup.type.charAt(0).toUpperCase() + powerup.type.slice(1)} Power-up`,
                 style: `left: ${powerup.x + 5}px; top: ${powerup.y + 5}px; width: 30px; height: 30px; position: absolute; z-index: 6;`
@@ -54,19 +54,34 @@ export function renderGame(state, playerId) {
     const renderWalls = () =>
         state.walls.map(key => {
             const [x, y] = key.split(',').map(Number);
-            return createVNode('div', {
+            return createVNode('img', {
                 class: 'wall',
-                style: `left: ${x * state.tileSize}px; top: ${y * state.tileSize}px; position: absolute; z-index: 2; width: ${state.tileSize}px; height: ${state.tileSize}px;`
+                src: 'images/wall.png',
+                style: `
+        left: ${x * state.tileSize}px;
+        top: ${y * state.tileSize}px;
+        position: absolute;
+        z-index: 2;
+        width: ${state.tileSize}px;
+        height: ${state.tileSize}px;
+      `
             });
         });
 
-    // Helper to render blocks
     const renderBlocks = () =>
         state.blocks.map(key => {
             const [x, y] = key.split(',').map(Number);
-            return createVNode('div', {
+            return createVNode('img', {
                 class: 'block',
-                style: `left: ${x * state.tileSize}px; top: ${y * state.tileSize}px; position: absolute; z-index: 3; width: ${state.tileSize}px; height: ${state.tileSize}px;`
+                src: 'images/block.png',
+                style: `
+        left: ${x * state.tileSize}px;
+        top: ${y * state.tileSize}px;
+        position: absolute;
+        z-index: 3;
+        width: ${state.tileSize}px;
+        height: ${state.tileSize}px;
+      `
             });
         });
 

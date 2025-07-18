@@ -1,15 +1,13 @@
-import { createVNode } from '../framework/core.js';
+import { createVNode, refs } from '../framework/core.js';
 import store from '../framework/state.js';
 import { socket } from './websocket.js';
 import { renderGame } from './renderer.js';
 
-
 // Handle click events
 export function attachViewGlobalEvents() {
-  document.body.onclick((e) => {
-    if (e.target.id === 'join-btn') {
-      const nicknameInput = document.getElementById('nickname-input');
-      const nickname = nicknameInput ? nicknameInput.value.trim() : '';
+  document.body.onclick = function (e) {
+    if (e.target === refs.joinBtn) {
+      const nickname = refs.nicknameInput?.value.trim() || '';
       if (!nickname) {
         store.setState({ error: 'Please enter a nickname.' });
         return;
@@ -19,29 +17,29 @@ export function attachViewGlobalEvents() {
       socket.send(JSON.stringify({ type: 'join', payload: { nickname } }));
     }
 
-    if (e.target.id === 'chat-send') {
-      const input = document.getElementById('chat-input');
-      const message = input.value.trim();
+    if (e.target === refs.chatSend) {
+      const message = refs.chatInput?.value.trim();
       if (!message) return;
       socket.send(JSON.stringify({ type: 'chat', payload: { message } }));
-      input.value = '';
+      refs.chatInput.value = '';
     }
 
     if (e.target.id === 'restart-btn') {
       socket.send(JSON.stringify({ type: 'restart' }));
       store.setState({ screen: 'waiting', error: '', winner: null });
     }
-  });
+  };
 
   // Handle Enter key
-  document.body.onkeydown((e) => {
-    if (e.target.id === 'nickname-input' && e.key === 'Enter') {
-      document.getElementById('join-btn').click();
+  document.body.onkeydown = function (e) {
+    if (e.target === refs.nicknameInput && e.key === 'Enter') {
+      refs.joinBtn?.click();
     }
-    if (e.target.id === 'chat-input' && e.key === 'Enter') {
-      document.getElementById('chat-send').click();
+
+    if (e.target === refs.chatInput && e.key === 'Enter') {
+      refs.chatSend?.click();
     }
-  });
+  };
 }
 
 export function AppView(state) {
@@ -58,13 +56,18 @@ function NicknameScreen(state) {
     createVNode('h1', {}, '🎮 BOMBERMAN DOM'),
     createVNode('input', {
       id: 'nickname-input',
+      ref: el => refs.nicknameInput = el,
       class: 'nickname-input',
       type: 'text',
       placeholder: 'Enter your nickname',
       maxlength: 15,
       value: state.nickname || ''
     }),
-    createVNode('button', { id: 'join-btn', class: 'btn' }, 'Join Game'),
+    createVNode('button', {
+      id: 'join-btn',
+      ref: el => refs.joinBtn = el,
+      class: 'btn'
+    }, 'Join Game'),
     ErrorBanner(state)
   ]);
 }
@@ -90,7 +93,6 @@ function WaitingScreen(state) {
 }
 
 function GameScreen(state) {
-
   return createVNode('div', {
     class: 'screen',
     id: 'game-screen',
@@ -110,11 +112,16 @@ function ChatOverlay(state) {
     createVNode('div', { class: 'chat-input-container' }, [
       createVNode('input', {
         id: 'chat-input',
+        ref: el => refs.chatInput = el,
         class: 'chat-input',
         type: 'text',
         placeholder: 'Type message…'
       }),
-      createVNode('button', { id: 'chat-send', class: 'chat-send' }, 'Send')
+      createVNode('button', {
+        id: 'chat-send',
+        ref: el => refs.chatSend = el,
+        class: 'chat-send'
+      }, 'Send')
     ])
   ]);
 }
@@ -128,6 +135,9 @@ function ErrorBanner(state) {
 function WinnerBanner(data) {
   return createVNode('div', { class: 'winner-overlay' }, [
     createVNode('div', { class: 'winner-banner' }, `${data.winner.nickname} you are ${data.type}`),
-    createVNode('button', { id: 'restart-btn', class: 'btn restart-btn' }, 'Restart Game')
+    createVNode('button', {
+      id: 'restart-btn',
+      class: 'btn restart-btn'
+    }, 'Restart Game')
   ]);
 }
