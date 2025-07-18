@@ -20,16 +20,11 @@ class GameState {
         });
     }
     removePlayer(id) {
-        console.log('removePlayer######################################', id);
         const player = this.players.get(id);
         if (player) {
-            console.log('player allive######################################', player.alive);
             player.alive = false;
         }
-        console.log('player allive######################################', player.alive);
-        this.players.delete(id);
-        console.log(this.players);
-        
+        this.players.delete(id);  
     }
 
     isValidPosition(x, y) {

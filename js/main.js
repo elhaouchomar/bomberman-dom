@@ -13,6 +13,7 @@ const movementKeys = {
   ArrowLeft:  { dx: -1, dy:  0 },
   ArrowRight: { dx:  1, dy:  0 }
 };
+let pressedKeys = [];
 let currentMoveKey = null;
 let moveAnimationFrame = null;
 
@@ -26,6 +27,11 @@ function sendMove() {
 
 document.onkeydown = function (e) {
   if (movementKeys[e.key]) {
+    // If not already pressed, add to pressedKeys
+    if (!pressedKeys.includes(e.key)) {
+      pressedKeys.push(e.key);
+    }
+    // Always use the most recently pressed key
     if (currentMoveKey !== e.key) {
       currentMoveKey = e.key;
       if (!moveAnimationFrame) {
@@ -41,9 +47,12 @@ document.onkeydown = function (e) {
 
 document.onkeyup = function (e) {
   if (movementKeys[e.key]) {
+    // Remove the key from pressedKeys
+    pressedKeys = pressedKeys.filter(k => k !== e.key);
+    // If the released key was the current direction, switch to the next most recent
     if (currentMoveKey === e.key) {
-      currentMoveKey = null;
-      if (moveAnimationFrame) {
+      currentMoveKey = pressedKeys.length > 0 ? pressedKeys[pressedKeys.length - 1] : null;
+      if (!currentMoveKey && moveAnimationFrame) {
         cancelAnimationFrame(moveAnimationFrame);
         moveAnimationFrame = null;
       }
@@ -55,7 +64,6 @@ document.onkeyup = function (e) {
 // Render on state change
 const root = document.body;
 function rerender() {
-  // console.log("apppppp", store.getState());
   render(AppView(store.getState()), root);
 }
 store.subscribe(rerender);

@@ -13,10 +13,7 @@ function wsURL() {
 
 function openSocket() {
   socket = new WebSocket(wsURL());
-  console.log('[WS] connecting to', wsURL());
-
   socket.onopen = () => {
-    console.log('[WS] connected');
     if (lastNickname) {
       const payload = { nickname: lastNickname };
       if (lastRoomId) payload.roomId = lastRoomId;
@@ -27,12 +24,10 @@ function openSocket() {
   socket.onmessage = handleMessage;
 
   socket.onerror = (e) => {
-    console.warn('[WS] error', e);
     store.setState({ error: 'WebSocket error' });
   };
 
   socket.onclose = (e) => {
-    console.warn('[WS] closed', e.code, 'clean=', e.wasClean);
     store.setState({ error: 'Connection lost', screen: 'nickname', gameStarted: false });
     setTimeout(() => {
       if (socket?.readyState !== WebSocket.OPEN) {
@@ -67,8 +62,6 @@ function safeSend(obj) {
   const str = JSON.stringify(obj);
   if (socket?.readyState === WebSocket.OPEN) {
     socket.send(str);
-  } else {
-    console.warn('[WS] send skipped; socket not open', obj);
   }
 }
 
@@ -152,8 +145,6 @@ function handleMessage(evt) {
       break;
     }
     case 'win': case 'lose': {      
-      console.log(type);
-      
       store.setState({
         winner: payload,
         screen: 'winner',

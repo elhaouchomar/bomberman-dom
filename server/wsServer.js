@@ -5,12 +5,12 @@ import GameState from './game/GameState.js';
 const PORT = 8081;
 const MAX_PLAYERS_PER_ROOM = 4;
 const MIN_PLAYERS_TO_START = 2;
-const WAIT_BEFORE_COUNTDOWN_MS = 2_000;
-const COUNTDOWN_MS = 1_000;
+const WAIT_BEFORE_COUNTDOWN_MS = 20_000;
+const COUNTDOWN_MS = 10_000;
 const TICK_RATE_MS = 50; // ~20fps simulation tick
 
 let ROOM_SEQ = 1;
-const rooms = new Map(); // roomId -> {id,gameState,lobby:{...}}
+const rooms = new Map(); // roomId -> {id,gameState,stateInfo:{...}}
 
 function createRoom() {
     const id = `r_${ROOM_SEQ++}`;
@@ -19,7 +19,7 @@ function createRoom() {
     const room = {
         id,
         gameState: gs,
-        lobby: {
+        stateInfo: {
             players: [],
             nextPlayerNum: 1,
             waitingTimer: null,
@@ -37,7 +37,7 @@ function createRoom() {
 
 function findAvailableRoom() {
     for (const room of rooms.values()) {
-        if (!room.lobby.gameStarted && room.lobby.players.length < MAX_PLAYERS_PER_ROOM && !room.lobby.starCout10S) {
+        if (!room.stateInfo.gameStarted && room.stateInfo.players.length < MAX_PLAYERS_PER_ROOM && !room.stateInfo.starCout10S) {
             return room;
         }
     }
@@ -47,7 +47,7 @@ function findAvailableRoom() {
 
 function roomBroadcast(room, msg) {
     const str = JSON.stringify(msg);
-    for (const p of room.lobby.players) {
+    for (const p of room.stateInfo.players) {
         if (p.ws.readyState === WebSocket.OPEN) {
             p.ws.send(str);
         }
@@ -57,7 +57,7 @@ function roomBroadcast(room, msg) {
 function roomSendPlayerList(room) {
     roomBroadcast(room, {
         type: 'playerList',
-        payload: room.lobby.players.map(p => ({
+        payload: room.stateInfo.players.map(p => ({
             id: p.id,
             nickname: p.nickname,
             playerNum: p.playerNum,
@@ -66,7 +66,7 @@ function roomSendPlayerList(room) {
 }
 
 function roomStartWaiting(room) {
-    const l = room.lobby;
+    const l = room.stateInfo;
     if (l.waitingTimer || l.gameStarted) return;
     l.waitingRemaining = Math.floor(WAIT_BEFORE_COUNTDOWN_MS / 1000);
     roomBroadcast(room, { type: 'waiting', payload: { waiting: l.waitingRemaining } });
@@ -76,17 +76,17 @@ function roomStartWaiting(room) {
         roomBroadcast(room, { type: 'waiting', payload: { waiting: l.waitingRemaining } });
         if (l.waitingRemaining <= 0) {
             clearInterval(l.waitingTimer); l.waitingTimer = null;
-            if (l.players.length >= MIN_PLAYERS_TO_START && !l.gameStarted) {                room.lobby.starCout10S = true
+            if (l.players.length >= MIN_PLAYERS_TO_START && !l.gameStarted) {                room.stateInfo.starCout10S = true
 
                 roomStartCountdown(room);
-                room.lobby.starCout10S = true
+                room.stateInfo.starCout10S = true
             }
         }
     }, 1000);
 }
 
 function roomStartCountdown(room) {
-    const l = room.lobby;
+    const l = room.stateInfo;
     if (l.countdownTimer || l.gameStarted) return;
     if (l.waitingTimer) { clearInterval(l.waitingTimer); l.waitingTimer = null; }
     l.countdownRemaining = Math.floor(COUNTDOWN_MS / 1000);
@@ -103,7 +103,7 @@ function roomStartCountdown(room) {
 }
 
 function roomStartGame(room) {
-    const l = room.lobby;
+    const l = room.stateInfo;
     if (l.gameStarted) return;
     if (l.players.length < MIN_PLAYERS_TO_START) {
         roomStartWaiting(room);
@@ -138,7 +138,7 @@ function getSpawnPositions(gs) {
 }
 
 function roomEndGame(room, extraMsg = null) {
-    const l = room.lobby;
+    const l = room.stateInfo;
     l.gameStarted = false;
 
     const gs = room.gameState;
@@ -154,15 +154,12 @@ function roomEndGame(room, extraMsg = null) {
         roomSendPlayerList(room);
     }
 
-    // if (l.players.length >= MIN_PLAYERS_TO_START) {
-    //     roomStartWaiting(room);
-    // }
 }
 
 
 setInterval(() => {
     for (const room of rooms.values()) {
-        const l = room.lobby;
+        const l = room.stateInfo;
         if (!l.gameStarted) continue;
 
         const gs = room.gameState;
@@ -171,8 +168,6 @@ setInterval(() => {
 
         // winner detection
         const alive = Array.from(gs.players.values()).filter(p => p.alive);
-        // console.log("FSDFQSDFHSDJKQFSDJF", alive);
-        
         if (alive.length === 1) {
             const win = alive[0];
 
@@ -183,8 +178,6 @@ setInterval(() => {
                     payload: { id: player.id, nickname: player.nickname }
                 }));
             }
-            console.log(`🏆 [ROOM ${room.id}] Winner ${win.nickname}`);
-            // roomEndGame(room);
         } else if (alive.length === 0) {
             roomBroadcast(room, { type: 'died', payload: [] });
             console.log(`🤝 [ROOM ${room.id}] Tie`);
@@ -200,7 +193,6 @@ console.log(`🟢 WebSocket multi-room server running ws://localhost:${PORT}`);
 if (rooms.size === 0) createRoom();
 
 wss.on('connection', ws => {
-    console.log('client connected:', ws._socket?.remoteAddress);
     let myRoom = null;
     let myPlayer = null;
 
@@ -218,14 +210,14 @@ wss.on('connection', ws => {
             // room selection: allow forced newRoom / roomId
             const requestedRoom = payload.roomId ? rooms.get(payload.roomId) : null;
             myRoom = (payload.newRoom ? createRoom() : null) || requestedRoom || findAvailableRoom();
-            const l = myRoom.lobby;
+            const l = myRoom.stateInfo;
 
             const nickLower = nicknameRaw.toLowerCase();
-            const dupLobby = l.players.some(p => p.nickname.toLowerCase() === nickLower);
+            const dupStateInfo = l.players.some(p => p.nickname.toLowerCase() === nickLower);
             const dupGame = l.gameStarted
                 ? Array.from(myRoom.gameState.players.values()).some(p => p.nickname.toLowerCase() === nickLower && p.alive)
                 : false;
-            if (dupLobby || dupGame) {
+            if (dupStateInfo || dupGame) {
                 ws.send(JSON.stringify({ type: 'error', payload: { message: `Username "${nicknameRaw}" is taken in this room.` } }));
                 return;
             }
@@ -260,24 +252,13 @@ wss.on('connection', ws => {
         }
 
         // ---------------- ACTION ----------------
-        if (type === 'action' && myRoom && myPlayer && myRoom.lobby.gameStarted) {
+        if (type === 'action' && myRoom && myPlayer && myRoom.stateInfo.gameStarted) {
             myRoom.gameState.applyAction(myPlayer.id, payload);
             return;
         }
 
         // ---------------- RESTART ----------------
-        console.log("RESTART@@@@@@@@@@@@", type, myRoom.lobby.gameStarted);
-        // if (type === 'restart' && myRoom && myPlayer && !myRoom.lobby.gameStarted) {
-        //     console.log("RESTART!!!!!!!!!!!!", type, myRoom.lobby.gameStarted);
-        //     const l = myRoom.lobby;
-        //     if (l.players.length >= MIN_PLAYERS_TO_START) {
-        //         roomStartCountdown(myRoom);
-        //     } else {
-        //         roomStartWaiting(myRoom);
-        //     }
-        // }
         if (type === 'restart') {
-            // myRoom = null;
             myPlayer = null;
             roomEndGame(myRoom);
             ws.send(JSON.stringify({ type: 'restart' }));
@@ -287,7 +268,7 @@ wss.on('connection', ws => {
 
     ws.on('close', () => {
         if (!myRoom || !myPlayer) return;
-        const l = myRoom.lobby;
+        const l = myRoom.stateInfo;
         const nick = myPlayer.nickname;
 
         if (l.gameStarted) {

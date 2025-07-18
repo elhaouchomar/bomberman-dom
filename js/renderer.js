@@ -105,9 +105,7 @@ export function renderGame(state, playerId) {
         });
 
     // UI for player stats (lives, bombs, power, speed)
-    // console.log("RENDERER", state.players);
     let me = playerId ? state.players.find(p => p.id === playerId) : {};
-    // console.log("meeeeeeeeeee", me);
     const lives = me ? Array.from({ length: me.lives }, (_, i) =>
         createVNode('img', { src: 'images/heart.png', alt: 'Heart', key: `l${i}` })
     ) : [];
@@ -140,10 +138,3 @@ export function renderGame(state, playerId) {
         ])
     ]);
 }
-
-// function getPlayerColor(id) {
-//     // Assign color based on id (simple hash)
-//     const colors = ['#ff4444', '#4444ff', '#44ff44', '#ffff44'];
-//     const n = parseInt(id.replace(/\D/g, ''), 10) || 0;
-//     return colors[n % colors.lengtrenderBlocksh];
-// } 
