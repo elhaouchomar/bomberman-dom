@@ -142,6 +142,15 @@ function handleMessage(evt) {
       break;
     }
 
+    case 'restart': {
+      store.setState({
+        screen: 'nickname',
+        error: '',
+        winner: null,
+        chatMessages: [] // Clear chat messages on restart
+      });
+      break;
+    }
     case 'win': case 'lose': {      
       console.log(type);
       
@@ -153,6 +162,17 @@ function handleMessage(evt) {
         type: type
       });
       break;
+    }
+
+    case 'died': {
+      store.setState({
+        players: payload,
+        type: type,
+        winner: null,
+        screen: 'winner',
+        gameStarted: false,
+        error: '',
+      });
     }
 
     case 'error': {

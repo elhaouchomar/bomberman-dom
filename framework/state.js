@@ -50,7 +50,7 @@ export const store = {
 
   setState(partial) {    
     state = { ...state, ...partial };   // simple, generic merge
-    
+    // console.log("framework/state.js", state);
     subscribers?.forEach( fn => { fn()});    // notify after every commit
   },
 

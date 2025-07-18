@@ -1,6 +1,7 @@
 import { createVNode } from '../framework/core.js';
 
 export function renderGame(state, playerId) {
+    if(!state || !playerId) return;
     // Helper to render powerups
     const renderPowerups = () =>
         state.powerups.map(powerup =>
@@ -104,7 +105,9 @@ export function renderGame(state, playerId) {
         });
 
     // UI for player stats (lives, bombs, power, speed)
-    let me = playerId ? state.players.find(p => p.id === playerId) : null;
+    // console.log("RENDERER", state.players);
+    let me = playerId ? state.players.find(p => p.id === playerId) : {};
+    // console.log("meeeeeeeeeee", me);
     const lives = me ? Array.from({ length: me.lives }, (_, i) =>
         createVNode('img', { src: 'images/heart.png', alt: 'Heart', key: `l${i}` })
     ) : [];

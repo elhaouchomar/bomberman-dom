@@ -25,8 +25,9 @@ export function attachViewGlobalEvents() {
     }
 
     if (e.target.id === 'restart-btn') {
+      // console.log("RESTART BUTTON");
       socket.send(JSON.stringify({ type: 'restart' }));
-      store.setState({ screen: 'waiting', error: '', winner: null });
+      
     }
   };
 
@@ -98,6 +99,7 @@ function GameScreen(state) {
     id: 'game-screen',
     style: `display:${state.screen === 'game' ? 'block' : 'none'}`
   }, [
+    // console.log("GAME SCREEN", state),
     renderGame(state.gameState, state.playerId)
   ]);
 }
@@ -133,8 +135,12 @@ function ErrorBanner(state) {
 }
 
 function WinnerBanner(data) {
-  return createVNode('div', { class: 'winner-overlay' }, [
-    createVNode('div', { class: 'winner-banner' }, `${data.winner.nickname} you are ${data.type}`),
+  const message = data.type === 'win' ?
+      ` 🎉 Congratulations, ${data.winner.nickname}! You are the winner of the game! 🏆` :
+      data.type === 'lose' ? `💀 Sorry, ${data.winner.nickname} — you have lost the game. Better luck next game! 💪` :
+      `☠️ All players have died. Game Over.`;
+   return createVNode('div', { class: 'winner-overlay' }, [
+    createVNode('div', { class: 'winner-banner' }, message),
     createVNode('button', {
       id: 'restart-btn',
       class: 'btn restart-btn'

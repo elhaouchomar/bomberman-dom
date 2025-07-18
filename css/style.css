@@ -402,6 +402,14 @@ body {
   font-size: 3rem;
   color: #fff;
   margin-bottom: 1rem;
+  text-align: center;
+  padding: 2rem;
+  border-radius: 1rem;
+  border: 2px solid #ff6b35;
+  margin-bottom: 2rem;
+  background-color: rgba(10, 40, 124, 0.315);
+  text-shadow: 2px 2px 4px #fd4400;  
+
 }
 
 .restart-btn {

@@ -5,8 +5,8 @@ import GameState from './game/GameState.js';
 const PORT = 8081;
 const MAX_PLAYERS_PER_ROOM = 4;
 const MIN_PLAYERS_TO_START = 2;
-const WAIT_BEFORE_COUNTDOWN_MS = 20_000;
-const COUNTDOWN_MS = 10_000;
+const WAIT_BEFORE_COUNTDOWN_MS = 2_000;
+const COUNTDOWN_MS = 1_000;
 const TICK_RATE_MS = 50; // ~20fps simulation tick
 
 let ROOM_SEQ = 1;
@@ -171,7 +171,7 @@ setInterval(() => {
 
         // winner detection
         const alive = Array.from(gs.players.values()).filter(p => p.alive);
-        console.log("FSDFQSDFHSDJKQFSDJF", alive);
+        // console.log("FSDFQSDFHSDJKQFSDJF", alive);
         
         if (alive.length === 1) {
             const win = alive[0];
@@ -185,8 +185,8 @@ setInterval(() => {
             }
             console.log(`🏆 [ROOM ${room.id}] Winner ${win.nickname}`);
             // roomEndGame(room);
-        } else if (alive.length === 0 && gs.players.size > 0) {
-            roomBroadcast(room, { type: 'winner', payload: { id: null, nickname: 'TIE - All players died!' } });
+        } else if (alive.length === 0) {
+            roomBroadcast(room, { type: 'died', payload: [] });
             console.log(`🤝 [ROOM ${room.id}] Tie`);
             roomEndGame(room);
         }
@@ -266,13 +266,22 @@ wss.on('connection', ws => {
         }
 
         // ---------------- RESTART ----------------
-        if (type === 'restart' && myRoom && myPlayer && !myRoom.lobby.gameStarted) {
-            const l = myRoom.lobby;
-            if (l.players.length >= MIN_PLAYERS_TO_START) {
-                roomStartCountdown(myRoom);
-            } else {
-                roomStartWaiting(myRoom);
-            }
+        console.log("RESTART@@@@@@@@@@@@", type, myRoom.lobby.gameStarted);
+        // if (type === 'restart' && myRoom && myPlayer && !myRoom.lobby.gameStarted) {
+        //     console.log("RESTART!!!!!!!!!!!!", type, myRoom.lobby.gameStarted);
+        //     const l = myRoom.lobby;
+        //     if (l.players.length >= MIN_PLAYERS_TO_START) {
+        //         roomStartCountdown(myRoom);
+        //     } else {
+        //         roomStartWaiting(myRoom);
+        //     }
+        // }
+        if (type === 'restart') {
+            // myRoom = null;
+            myPlayer = null;
+            roomEndGame(myRoom);
+            ws.send(JSON.stringify({ type: 'restart' }));
+            return;
         }
     });
 
