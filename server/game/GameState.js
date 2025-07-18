@@ -83,11 +83,30 @@ class GameState {
             case 'move': {
                 const { dx, dy } = action;
                 const speed = player.speed * 2;
-                const nx = player.x + (dx * speed);
-                const ny = player.y + (dy * speed);
-                if (this.isValidPosition(nx, ny)) {
-                    player.x = nx;
-                    player.y = ny;
+                let nx = player.x, ny = player.y;
+                for (let step = 0; step < speed; step++) {
+                    const tx = nx + (dx !== 0 ? Math.sign(dx) : 0);
+                    const ty = ny + (dy !== 0 ? Math.sign(dy) : 0);
+                    if (this.isValidPosition(tx, ty)) {
+                        nx = tx;
+                        ny = ty;
+                    } else {
+                        break; // Stop at the first collision
+                    }
+                }
+                player.x = nx;
+                player.y = ny;
+                // --- Snap to grid if close to center of a tile ---
+                const centerOffset = 4; // Snap if within 4px of center
+                const tileCenterX = Math.floor((player.x + 16) / this.tileSize) * this.tileSize + this.tileSize / 2 - 16;
+                const tileCenterY = Math.floor((player.y + 16) / this.tileSize) * this.tileSize + this.tileSize / 2 - 16;
+                if (Math.abs(player.x - tileCenterX) < centerOffset && Math.abs(player.y - tileCenterY) < centerOffset) {
+                    // Only snap if not moving diagonally
+                    if (dx !== 0 && dy === 0) {
+                        player.y = tileCenterY;
+                    } else if (dy !== 0 && dx === 0) {
+                        player.x = tileCenterX;
+                    }
                 }
                 this.checkPowerupCollection(player);
                 break;
@@ -177,7 +196,7 @@ class GameState {
                 player.power++;
                 break;
             case 'speed':
-                player.speed++;
+                player.speed+= 0.5;
                 break;
         }
     }
