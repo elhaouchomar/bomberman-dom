@@ -89,12 +89,12 @@ class GameState {
         const key = `${gx},${gy}`;
         if (this.walls.has(key)) continue;
 
-        const safe =
+        const isNotSafe =
           (gx <= 2 && gy <= 2) ||                       // top‑left spawn
           (gx >= W - 3 && gy <= 2) ||                   // top‑right
           (gx <= 2 && gy >= H - 3) ||                   // bottom‑left
           (gx >= W - 3 && gy >= H - 3);                 // bottom‑right
-        if (!safe && Math.random() < 0.30) this.blocks.add(key);
+        if (!isNotSafe && Math.random() < 0.30) this.blocks.add(key);
       }
     }
   }
