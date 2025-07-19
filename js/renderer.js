@@ -117,7 +117,7 @@ export function renderGame(state, playerId) {
                 }),
                 createVNode('img', {
                     class: `Character_spritesheet pixelart face-${p.dir || 'down'}`,
-                    src: 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/21542/DemoRpgCharacter.png',
+                    src: 'https://i.postimg.cc/WzCtLbFy/Chat-GPT-Image-Jul-19-2025-04-23-11-PM-removebg-preview.png',
                     alt: p.nickname, title: p.nickname
                 })
             ]);

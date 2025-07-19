@@ -33,6 +33,18 @@
   --t-slow: .6s;
 }
 
+::selection {
+  background: rgba(255, 255, 120, 0.35); /* light glowing yellow */
+  color: #fff;
+  text-shadow: 0 0 4px #ffea52, 0 0 8px #ffea52;
+}
+
+::-moz-selection {
+  background: rgba(255, 255, 120, 0.35);
+  color: #fff;
+  text-shadow: 0 0 4px #ffea52, 0 0 8px #ffea52;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -118,15 +130,12 @@ body::before {
   box-shadow: 0 10px 28px rgba(0, 0, 0, .45);
   animation: fadeInUp var(--t-slow) cubic-bezier(.34, 1.56, .64, 1);
   text-align: center;
-  margin-top: 70px;
 }
-
-div#waiting-screen {}
 
 .bomber,
 .waiting {
   width: 70%;
-  height: 35%;
+  height: 40%;
 }
 
 
@@ -235,8 +244,12 @@ div#waiting-screen {}
 }
 
 .btn {
-  padding: 1rem 2rem;
-  margin-top: .5rem
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem !important;
+  margin-top: .5rem;
+  flex:0 0 auto;
 }
 
 .btn::before,
@@ -325,11 +338,17 @@ div#waiting-screen {}
   font-size: 12px;
 }
 
+@media (max-width: 1350px) {
+  .chat-overlay {
+    display: none;
+  }
+}
+
 .chat-messages {
   flex: 1;
   overflow-y: auto;
   padding: 12px;
-  scrollbar-width: thin
+  scrollbar-width: none;
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -346,12 +365,8 @@ div#waiting-screen {}
   margin-bottom: 6px;
   font-size: .8rem;
   background: rgba(255, 255, 255, .05);
-  border-left: 4px solid var(--game-accent);
+  border-left: 4px solid var(--neon-purple);
   line-height: 1.3
-}
-
-.chat-msg:nth-child(odd) {
-  border-color: var(--neon-purple)
 }
 
 /* Row containing input + icon */
@@ -484,7 +499,7 @@ div#waiting-screen {}
   width: calc(var(--tile)*4 + var(--sprite-gap)*2);
   height: calc(var(--tile)*4 + var(--sprite-gap)*2);
   animation: walk .8s steps(4) infinite;
-  filter: hue-rotate(var(--hue)) saturate(1.6) brightness(1.25);
+  filter: hue-rotate(var(--hue)) saturate(1.6) brightness(5);
 }
 
 @keyframes walk {

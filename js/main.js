@@ -26,6 +26,8 @@ function sendMove() {
 }
 
 document.onkeydown = function (e) {
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
   if (movementKeys[e.key]) {
     // If not already pressed, add to pressedKeys
     if (!pressedKeys.includes(e.key)) {

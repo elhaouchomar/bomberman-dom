@@ -5,7 +5,7 @@ import GameState from './game/GameState.js';
 const PORT = 8081;
 const MAX_PLAYERS_PER_ROOM = 4;
 const MIN_PLAYERS_TO_START = 2;
-const WAIT_BEFORE_COUNTDOWN_MS = 2_000;
+const WAIT_BEFORE_COUNTDOWN_MS = 10_000;
 const COUNTDOWN_MS = 1_000;
 const TICK_RATE_MS = 50; 
 let ROOM_SEQ = 1;

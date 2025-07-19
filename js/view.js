@@ -3,6 +3,25 @@ import store from '../framework/state.js';
 import { socket } from './websocket.js';
 import { renderGame } from './renderer.js';
 
+const CHAT_COLORS = [
+  '#ff4040', // red
+  '#00ff40ff', // green
+  '#ff7b00', // orange
+  '#0080ff', // blue
+  '#b56bff', // purple fallback
+];
+
+const assignedColor = new Map(); // nickname -> color
+function colorFor(name) {
+  if (!name || name.toLowerCase() === 'system') return '#b56bff'; // violet
+  if (assignedColor.has(name)) return assignedColor.get(name);
+  // pick next color in list (excluding system violet)
+  const idx = assignedColor.size % CHAT_COLORS.length;
+  const c = CHAT_COLORS[idx];
+  assignedColor.set(name, c);
+  return c;
+}
+
 // Handle click events
 export function attachViewGlobalEvents() {
   document.body.onclick = function (e) {
@@ -46,7 +65,7 @@ export function AppView(state) {
   return createVNode('div', { class: 'app' }, [
     state.screen === 'nickname' && NicknameScreen(state),
     state.screen === 'waiting' && WaitingScreen(state),
-    state.screen === 'waiting' && ChatOverlay(state),
+    state.chatVisible && ChatOverlay(state),
     state.screen === 'game' && GameScreen(state),
     state.screen === 'winner' && WinnerBanner(state)
   ]);
@@ -62,11 +81,18 @@ function NicknameScreen(state) {
       type: 'text',
       placeholder: 'Enter your nickname',
       maxlength: 15,
-      value: state.nickname || ''
+      value: state.nickname || '',
+      onkeydown: e => {
+        if (e.key === ' ') e.preventDefault();
+      },
+      oninput: e => {
+        const v = e.target.value;
+        if (/\s/.test(v)) e.target.value = v.replace(/\s+/g, '');
+      }
     }),
     createVNode('button', {
       id: 'join-btn',
-      ref: el => { console.log('eeeeeeeeeeel', refs), refs.joinBtn = el, console.log('refs.joinBtn', refs.joinBtn); },
+      ref: el => { refs.joinBtn = el },
       class: 'btn'
     }, 'Join Game'),
     ErrorBanner(state)
@@ -104,10 +130,18 @@ function ChatOverlay(state) {
   return createVNode('div', { class: 'chat-overlay' }, [
 
     /* messages */
-    createVNode('div', { id: 'chat-messages', class: 'chat-messages' },
-      state.chatMessages.map(msg =>
-        createVNode('div', { class: 'chat-msg' }, `${msg.nickname}: ${msg.message}`)
-      )
+    createVNode('div', { id: 'chat-messages', class: 'chat-messages', ref: el => (refs.chatMessages = el) },
+      state.chatMessages.map(msg => {
+        const name = msg.nickname || 'System';
+        const col = colorFor(name);
+        return createVNode('div', {
+          class: 'chat-msg',
+          style: `--chat-color:${col}`
+        }, [
+          createVNode('span', { class: 'chat-name', style: `color:${col}` }, name + ': '),
+          createVNode('span', { class: 'chat-text' }, msg.message)
+        ]);
+      })
     ),
 
     /* input + icon (single relative container) */

@@ -1,4 +1,5 @@
 import store from '../framework/state.js';
+import { refs } from '../framework/core.js';
 
 let socket = null;
 export { socket };
@@ -132,6 +133,10 @@ function handleMessage(evt) {
         chatMessages: [...store.getState().chatMessages, payload],
         error: ''
       });
+      setTimeout(() => {
+        const box = refs?.chatMessages;
+        if (box) box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+      }, 0);
       break;
     }
 
@@ -144,7 +149,7 @@ function handleMessage(evt) {
       });
       break;
     }
-    case 'win': case 'lose': {      
+    case 'win': case 'lose': {
       store.setState({
         winner: payload,
         screen: 'winner',
