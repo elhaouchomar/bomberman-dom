@@ -71,13 +71,14 @@ class GameState {
         const key = `${gx},${gy}`;
         if (this.walls.has(key)) continue;
 
-        const safe =
+        const isNotSafe = !(
           (gx <= 2 && gy <= 2) ||
           (gx >= w - 3 && gy <= 2) ||
           (gx <= 2 && gy >= h - 3) ||
-          (gx >= w - 3 && gy >= h - 3);
+          (gx >= w - 3 && gy >= h - 3)
+        );
 
-        if (!safe && Math.random() < 0.30) this.blocks.add(key);
+        if (isNotSafe && Math.random() < 0.30) this.blocks.add(key);
       }
     }
   }
