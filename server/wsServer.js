@@ -5,8 +5,8 @@ import GameState from './game/GameState.js';
 const PORT = 8081;
 const MAX_PLAYERS_PER_ROOM = 4;
 const MIN_PLAYERS_TO_START = 2;
-const WAIT_BEFORE_COUNTDOWN_MS = 20_000;
-const COUNTDOWN_MS = 10_000;
+const WAIT_BEFORE_COUNTDOWN_MS = 2_000;
+const COUNTDOWN_MS = 1_000;
 const TICK_RATE_MS = 50; 
 let ROOM_SEQ = 1;
 const rooms = new Map(); 
@@ -119,15 +119,15 @@ function roomStartGame(room) {
     gs.powerups.clear();
     gs.generateMap();
 
-    const spawns = getSpawnPositions(gs);
+    const positions = getStartingPositions(gs);
     l.players.forEach((p, i) => {
-        gs.addPlayer(p.id, p.nickname, spawns[i % spawns.length]);
+        gs.addPlayer(p.id, p.nickname, positions[i % positions.length]);
     });
 
     roomBroadcast(room, { type: 'gameStart', payload: { roomId: room.id } });
 }
 
-function getSpawnPositions(gs) {
+function getStartingPositions(gs) {
     return [
         { x: 4, y: 4 },
         { x: gs.mapWidth - 36, y: 4 },
@@ -147,11 +147,11 @@ function roomEndGame(room, extraMsg = null) {
     gs.powerups.clear();
     gs.generateMap();
 
-    if (extraMsg) {
-        roomBroadcast(room, extraMsg);
-        roomBroadcast(room, { type: 'chat', payload: { nickname: 'System', message: 'Round over. Waiting for restart…' } });
-        roomSendPlayerList(room);
-    }
+    // if (extraMsg) {
+        // roomBroadcast(room, extraMsg);
+        // roomBroadcast(room, { type: 'chat', payload: { nickname: 'System', message: 'Round over. Waiting for restart…' } });
+        // roomSendPlayerList(room);
+    // }
 
 }
 
@@ -212,11 +212,12 @@ wss.on('connection', ws => {
             const l = myRoom.stateInfo;
 
             const nickLower = nicknameRaw.toLowerCase();
+            // console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",Array.from(myRoom.gameState.players.values()));
             const dupStateInfo = l.players.some(p => p.nickname.toLowerCase() === nickLower);
-            const dupGame = l.gameStarted
-                ? Array.from(myRoom.gameState.players.values()).some(p => p.nickname.toLowerCase() === nickLower && p.alive)
-                : false;
-            if (dupStateInfo || dupGame) {
+            // const dupGame = l.gameStarted
+            //     ? Array.from(myRoom.gameState.players.values()).some(p => p.nickname.toLowerCase() === nickLower && p.alive)
+            //     : false;
+            if (dupStateInfo) {
                 ws.send(JSON.stringify({ type: 'error', payload: { message: `Username "${nicknameRaw}" is taken in this room.` } }));
                 return;
             }
@@ -227,6 +228,7 @@ wss.on('connection', ws => {
 
             myPlayer = { id: playerId, nickname, ws, playerNum };
             l.players.push(myPlayer);
+            console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",l.players.length);
             ws.playerId = playerId;
             ws.roomId = myRoom.id;
 

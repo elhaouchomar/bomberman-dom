@@ -172,9 +172,11 @@ export function renderGame(state, playerId) {
     const power = me ? Array.from({ length: me.power }, (_, i) =>
         createVNode('img', { src: 'images/Flames.png', alt: 'Flame', key: `p${i}` })
     ) : [];
+    console.log("mpoweeeeeeeeeeere", power);
     const speed = me ? Array.from({ length: me.speed }, (_, i) =>
         createVNode('img', { src: 'images/speedGift.png', alt: 'Speed', key: `s${i}` })
     ) : [];
+console.log("sppeeeeeed", speed);
 
     return createVNode('div', { class: 'game-container' }, [
         createVNode('div', { class: 'game-ui' }, [
