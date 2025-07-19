@@ -118,6 +118,7 @@ body::before {
   box-shadow: 0 10px 28px rgba(0, 0, 0, .45);
   animation: fadeInUp var(--t-slow) cubic-bezier(.34, 1.56, .64, 1);
   text-align: center;
+  margin-top: 70px;
 }
 
 div#waiting-screen {}
