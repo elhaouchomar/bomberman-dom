@@ -8,8 +8,8 @@ let lastNickname = '';
 let lastRoomId = null;
 
 function wsURL() {
-  const host = window.location.hostname || 'localhost';
-  return `ws://${host}:8081/`;
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${proto}//${location.host}/`;
 }
 
 function openSocket() {

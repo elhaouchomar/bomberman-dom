@@ -109,10 +109,12 @@ class GameState {
       x: pos.x, y: pos.y,
       dir: 'down',
       speed: 1,          // base speed
+      speedLevel: 1, 
       slideSlowTicks: 0, // ← slow‑down timer
       lives: 3, bombs: 1, power: 1,
       maxBombs: 1, activeBombs: 0,
       alive: true
+      
     });
   }
   removePlayer(id) { this.players.delete(id); }
@@ -208,7 +210,7 @@ class GameState {
   applyPowerup(p, type) {
     if (type === 'bombs') p.maxBombs++;
     else if (type === 'flames') p.power++;
-    else if (type === 'speed') p.speed ++; // permanent base speed boost
+    else if (type === 'speed')  { p.speed += 0.4;  p.speedLevel++;} // speed boost
   }
 
 

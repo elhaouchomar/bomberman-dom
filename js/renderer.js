@@ -163,7 +163,6 @@ export function renderGame(state, playerId) {
 
     // UI for player stats (lives, bombs, power, speed)
     let me = playerId ? state.players.find(p => p.id === playerId) : {};
-    console.log("#########################", me);
     const lives = me ? Array.from({ length: me.lives }, (_, i) =>
         createVNode('img', { src: 'images/heart.png', alt: 'Heart', key: `l${i}` })
     ) : [];
@@ -173,11 +172,9 @@ export function renderGame(state, playerId) {
     const power = me ? Array.from({ length: me.power }, (_, i) =>
         createVNode('img', { src: 'images/Flames.png', alt: 'Flame', key: `p${i}` })
     ) : [];
-    console.log("mpoweeeeeeeeeeere", power);
-    const speed = me ? Array.from({ length: me.speed }, (_, i) =>
+    const speed = me ? Array.from({ length: me.speedLevel }, (_, i) =>
         createVNode('img', { src: 'images/speedGift.png', alt: 'Speed', key: `s${i}` })
     ) : [];
-console.log("sppeeeeeed", speed);
 
     return createVNode('div', { class: 'game-container' }, [
         createVNode('div', { class: 'game-ui' }, [
