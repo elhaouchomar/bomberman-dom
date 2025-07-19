@@ -208,7 +208,7 @@ class GameState {
   applyPowerup(p, type) {
     if (type === 'bombs') p.maxBombs++;
     else if (type === 'flames') p.power++;
-    else if (type === 'speed') p.speed += 0.3; // permanent base speed boost
+    else if (type === 'speed') p.speed ++; // permanent base speed boost
   }
 
 

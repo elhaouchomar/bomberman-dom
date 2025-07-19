@@ -163,6 +163,7 @@ export function renderGame(state, playerId) {
 
     // UI for player stats (lives, bombs, power, speed)
     let me = playerId ? state.players.find(p => p.id === playerId) : {};
+    console.log("#########################", me);
     const lives = me ? Array.from({ length: me.lives }, (_, i) =>
         createVNode('img', { src: 'images/heart.png', alt: 'Heart', key: `l${i}` })
     ) : [];
