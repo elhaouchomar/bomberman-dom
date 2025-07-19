@@ -1,241 +1,255 @@
 class GameState {
-    constructor() {
-        this.players = new Map();
-        this.bombs = new Map();
-        this.explosions = new Map();
-        this.powerups = new Map();
-        this.walls = new Set();
-        this.blocks = new Set();
-        this.mapWidth = 760;
-        this.mapHeight = 600;
-        this.tileSize = 40;
-    }
+  constructor() {
+    /* -------- config -------- */
+    this.mapWidth  = 760;
+    this.mapHeight = 600;
+    this.tileSize  = 40;
+    this.playerSize = 32;
 
-    addPlayer(id, nickname, pos) {
-        this.players.set(id, {
-            id, nickname,
-            x: pos.x, y: pos.y,
-            lives: 3, bombs: 1, power: 1, speed: 1,
-            maxBombs: 1, activeBombs: 0, alive: true
-        });
-    }
-    removePlayer(id) {
-        const player = this.players.get(id);
-        if (player) {
-            player.alive = false;
+    /* -------- state --------- */
+    this.players    = new Map();   // id -> { ... }
+    this.bombs      = new Map();   // "x,y" -> {x,y,timer,power,owner}
+    this.explosions = new Map();   // "x,y" -> {x,y,timer}
+    this.powerups   = new Map();   // "x,y" -> {x,y,type}
+    this.walls      = new Set();   // "gx,gy"
+    this.blocks     = new Set();   // "gx,gy"
+
+    this.generateMap();
+  }
+
+  /* =====================================================================
+     COLLISION
+     ===================================================================== */
+  isValidPosition(x, y) {
+    const s = this.playerSize - 1;                     
+    if (x < 0 || y < 0 || x + s >= this.mapWidth || y + s >= this.mapHeight) return false;
+    const ok = (cx, cy) => {
+      const key = `${Math.floor(cx / this.tileSize)},${Math.floor(cy / this.tileSize)}`;
+      return !this.walls.has(key) && !this.blocks.has(key);
+    };
+    return ok(x, y) && ok(x + s, y) && ok(x, y + s) && ok(x + s, y + s);
+  }
+
+  trySlideY(p, tol, stepX) {
+    for (let s = 1; s <= tol; s++) {
+      for (const dy of [-s, s]) {
+        if (this.isValidPosition(p.x, p.y + dy)) {
+          p.y += dy;
+          if (this.isValidPosition(p.x + stepX, p.y)) p.x += stepX;
+          return true;
         }
-        this.players.delete(id);  
+      }
     }
-
-    isValidPosition(x, y) {
-        if (x < 0 || y < 0 || x + 31 >= this.mapWidth || y + 31 >= this.mapHeight) return false;
-        const corners = [
-            [x, y], [x + 31, y], [x, y + 31], [x + 31, y + 31]
-        ];
-        return corners.every(([cx, cy]) => {
-            const position = `${Math.floor(cx / this.tileSize)},${Math.floor(cy / this.tileSize)}`;
-            return !this.walls.has(position) && !this.blocks.has(position);
-        });
-    }
-
-    generateMap() {
-        // Clear previous map
-        this.walls.clear();
-        this.blocks.clear();
-    
-        // Place indestructible walls in a grid pattern
-        for (let x = 1; x < this.mapWidth / this.tileSize; x += 2) {
-            for (let y = 1; y < this.mapHeight / this.tileSize; y += 2) {
-                this.walls.add(`${x},${y}`);
-            }
+    return false;
+  }
+  trySlideX(p, tol, stepY) {
+    for (let s = 1; s <= tol; s++) {
+      for (const dx of [-s, s]) {
+        if (this.isValidPosition(p.x + dx, p.y)) {
+          p.x += dx;
+          if (this.isValidPosition(p.x, p.y + stepY)) p.y += stepY;
+          return true;
         }
-    
-        // Place destructible blocks randomly, avoiding player spawn areas
-        for (let x = 0; x < this.mapWidth / this.tileSize; x++) {
-            for (let y = 0; y < this.mapHeight / this.tileSize; y++) {
-                const position = `${x},${y}`;
-                if (this.walls.has(position)) continue;
-    
-                // Avoid spawn areas (corners)
-                const isSafe = (x <= 2 && y <= 2) ||
-                             (x >= this.mapWidth / this.tileSize - 3 && y <= 2) ||
-                             (x <= 2 && y >= this.mapHeight / this.tileSize - 3) ||
-                             (x >= this.mapWidth / this.tileSize - 3 && y >= this.mapHeight / this.tileSize - 3);
-                if (isSafe) continue;
-    
-                // 30% chance to place a block
-                if (Math.random() < 0.3) {
-                    this.blocks.add(position);
-                }
-            }
-        }
+      }
+    }
+    return false;
+  }
+
+  generateMap() {
+    this.walls.clear(); this.blocks.clear();
+
+    for (let gx = 1; gx < this.mapWidth / this.tileSize; gx += 2) {
+      for (let gy = 1; gy < this.mapHeight / this.tileSize; gy += 2) {
+        this.walls.add(`${gx},${gy}`);
+      }
     }
 
-    applyAction(playerId, action) {
-        const player = this.players.get(playerId);
-        if (!player || !player.alive) return;
-        switch (action.type) {
-            case 'move': {
-                const { dx, dy } = action;
-                const speed = player.speed * 2;
-                let nx = player.x, ny = player.y;
-                for (let step = 0; step < speed; step++) {
-                    const tx = nx + (dx !== 0 ? Math.sign(dx) : 0);
-                    const ty = ny + (dy !== 0 ? Math.sign(dy) : 0);
-                    if (this.isValidPosition(tx, ty)) {
-                        nx = tx;
-                        ny = ty;
-                    } else {
-                        break; // Stop at the first collision
-                    }
-                }
-                player.x = nx;
-                player.y = ny;
-                // --- Snap to grid if close to center of a tile ---
-                const centerOffset = 4; // Snap if within 4px of center
-                const tileCenterX = Math.floor((player.x + 16) / this.tileSize) * this.tileSize + this.tileSize / 2 - 16;
-                const tileCenterY = Math.floor((player.y + 16) / this.tileSize) * this.tileSize + this.tileSize / 2 - 16;
-                if (Math.abs(player.x - tileCenterX) < centerOffset && Math.abs(player.y - tileCenterY) < centerOffset) {
-                    // Only snap if not moving diagonally
-                    if (dx !== 0 && dy === 0) {
-                        player.y = tileCenterY;
-                    } else if (dy !== 0 && dx === 0) {
-                        player.x = tileCenterX;
-                    }
-                }
-                this.checkPowerupCollection(player);
-                break;
-            }
-            case 'placeBomb': {
-                if (player.activeBombs >= player.maxBombs) return;
-                const bx = Math.floor((player.x + 16) / this.tileSize) * this.tileSize; // 16 is half of the player's width
-                const by = Math.floor((player.y + 16) / this.tileSize) * this.tileSize; // 16 is half of the player's heightg
-                const id = `${bx},${by}`;
-                if (this.bombs.has(id)) return;
-                this.bombs.set(id, {
-                    x: bx, y: by, timer: 3000, power: player.power, owner: player.id
-                });
-                player.activeBombs++;
-                break;
-            }
+    const w = this.mapWidth / this.tileSize;
+    const h = this.mapHeight / this.tileSize;
+    for (let gx = 0; gx < w; gx++) {
+      for (let gy = 0; gy < h; gy++) {
+        const key = `${gx},${gy}`;
+        if (this.walls.has(key)) continue;
+
+        const safe =
+          (gx <= 2 && gy <= 2) ||
+          (gx >= w - 3 && gy <= 2) ||
+          (gx <= 2 && gy >= h - 3) ||
+          (gx >= w - 3 && gy >= h - 3);
+
+        if (!safe && Math.random() < 0.30) this.blocks.add(key);
+      }
+    }
+  }
+
+  addPlayer(id, nickname, pos) {
+    this.blocks.delete(`${Math.floor(pos.x/this.tileSize)},${Math.floor(pos.y/this.tileSize)}`);
+
+    this.players.set(id, {
+      id, nickname,
+      x: pos.x, y: pos.y,
+      dir: 'down',
+      speed: 1,               
+      lives: 3,
+      bombs: 1,
+      power: 1,
+      maxBombs: 1,
+      activeBombs: 0,
+      alive: true
+    });
+  }
+  removePlayer(id) { this.players.delete(id); }
+
+
+  applyAction(pid, action) {
+    const p = this.players.get(pid);
+    if (!p || !p.alive) return;
+
+    if (action.type === 'move') {
+      let { dx, dy } = action;                  
+      const magX = Math.abs(dx), magY = Math.abs(dy);
+      if (magX && magY) {                       
+        if (magX >= magY) dy = 0; else dx = 0;
+      }
+      if (!dx && !dy) return;
+
+      p.dir = dx>0?'right': dx<0?'left': dy<0?'up':'down';
+
+      const stepX   = Math.sign(dx);
+      const stepY   = Math.sign(dy);
+      const pixelN  = p.speed * 2;  
+      const slideTol= Math.min(pixelN, 16);
+
+      for (let i = 0; i < pixelN; i++) {
+        let moved = false;
+        if (stepX) {
+          const nx = p.x + stepX;
+          if (this.isValidPosition(nx, p.y)) { p.x = nx; moved = true; }
+          else moved = this.trySlideY(p, slideTol, stepX);
+        } else if (stepY) {
+          const ny = p.y + stepY;
+          if (this.isValidPosition(p.x, ny)) { p.y = ny; moved = true; }
+          else moved = this.trySlideX(p, slideTol, stepY);
         }
+        if (!moved) break;
+      }
+
+      this.checkPowerupCollection(p);
     }
 
-    tick(dt) {
-        // Bomb timers and explosions
-        for (const [id, bomb] of Array.from(this.bombs.entries())) {
-            bomb.timer -= dt;
-            if (bomb.timer <= 0) this.explodeBomb(bomb, id);
-        }
-        for (const [id, explosion] of Array.from(this.explosions.entries())) {
-            explosion.timer -= dt;
-            if (explosion.timer <= 0) this.explosions.delete(id);
-        }
+    else if (action.type === 'placeBomb') {
+      if (p.activeBombs >= p.maxBombs) return;
+      const cx = p.x + this.playerSize/2;
+      const cy = p.y + this.playerSize/2;
+      const bx = Math.floor(cx/this.tileSize)*this.tileSize;
+      const by = Math.floor(cy/this.tileSize)*this.tileSize;
+      const key = `${bx},${by}`;
+      if (!this.bombs.has(key)) {
+        this.bombs.set(key,{x:bx,y:by,timer:3000,power:p.power,owner:p.id});
+        p.activeBombs++;
+      }
     }
+  }
 
-    explodeBomb(bomb, id) {
-        this.bombs.delete(id);
-        const owner = this.players.get(bomb.owner);
-        if (owner) owner.activeBombs = Math.max(0, owner.activeBombs - 1);
-        const explosionArea = this.getExplosionArea(bomb.x, bomb.y, bomb.power);
-        for (const pos of explosionArea) {
-            const eId = `${pos.x},${pos.y}`;
-            this.explosions.set(eId, { ...pos, timer: 300 });
-            const cell = `${pos.x / this.tileSize},${pos.y / this.tileSize}`;
-            if (this.blocks.has(cell)) {
-                this.blocks.delete(cell);
-                this.maybeSpawnPowerup(pos.x, pos.y);
-            }
-            this.checkPlayerDamage(pos.x, pos.y);
-            const bombId = `${pos.x},${pos.y}`;
-            if (this.bombs.has(bombId)) this.explodeBomb(this.bombs.get(bombId), bombId);
-        }
+  maybeSpawnPowerup(x, y) {
+    if (Math.random() < 0.30) {
+      const types = ['bombs', 'flames', 'speed'];
+      const t = types[Math.floor(Math.random() * types.length)];
+      this.powerups.set(`${x},${y}`, { x, y, type: t });
     }
+  }
 
-    maybeSpawnPowerup(x, y) {
-        if (Math.random() < 0.3) {
-            const powerupTypes = ['bombs', 'flames', 'speed'];
-            const randomType = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
-            const powerupId = `${x},${y}`;
-
-            this.powerups.set(powerupId, {
-                x: x, y: y, type: randomType
-            });
-        }
+  checkPowerupCollection(p) {
+    const cx = p.x + 16, cy = p.y + 16;
+    for (const [id, pu] of Array.from(this.powerups.entries())) {
+      const pcx = pu.x + 20, pcy = pu.y + 20;
+      if (Math.abs(cx - pcx) < 20 && Math.abs(cy - pcy) < 20) {
+        this.applyPowerup(p, pu.type);
+        this.powerups.delete(id);
+      }
     }
+  }
 
-    checkPowerupCollection(player) {
-        const playerCenterX = player.x + 16;
-        const playerCenterY = player.y + 16;
+  applyPowerup(p, type) {
+    if (type === 'bombs')   p.maxBombs++;
+    else if (type === 'flames') p.power++;
+    else if (type === 'speed')  p.speed+=0.3;         
+  }
 
-        for (const [id, powerup] of Array.from(this.powerups.entries())) {
-            const powerupCenterX = powerup.x + 20;
-            const powerupCenterY = powerup.y + 20;
-
-            if (Math.abs(playerCenterX - powerupCenterX) < 20 &&
-                Math.abs(playerCenterY - powerupCenterY) < 20) {
-
-                this.applyPowerup(player, powerup.type);
-
-                this.powerups.delete(id);
-            }
-        }
+  tick(dt) {
+    for (const [id, b] of Array.from(this.bombs.entries())) {
+      b.timer -= dt;
+      if (b.timer <= 0) this.explodeBomb(b, id);
     }
-
-    applyPowerup(player, type) {
-        switch (type) {
-            case 'bombs':
-                player.maxBombs++;
-                break;
-            case 'flames':
-                player.power++;
-                break;
-            case 'speed':
-                player.speed+= 0.5;
-                break;
-        }
+    for (const [id, ex] of Array.from(this.explosions.entries())) {
+      ex.timer -= dt;
+      if (ex.timer <= 0) this.explosions.delete(id);
     }
+  }
 
-    getExplosionArea(x, y, power) {
-        const arr = [{ x, y }];
-        const dirs = [[0, -this.tileSize], [0, this.tileSize], [-this.tileSize, 0], [this.tileSize, 0]];
-        for (const [dx, dy] of dirs) {
-            for (let i = 1; i <= power; i++) {
-                const nx = x + dx * i, ny = y + dy * i;
-                if (nx < 0 || ny < 0 || nx >= this.mapWidth || ny >= this.mapHeight) break;
-                const cell = `${nx / this.tileSize},${ny / this.tileSize}`;
-                if (this.walls.has(cell)) break;
-                arr.push({ x: nx, y: ny });
-                if (this.blocks.has(cell)) break;
-            }
-        }
-        return arr;
-    }
+  explodeBomb(bomb, id) {
+    this.bombs.delete(id);
+    const owner = this.players.get(bomb.owner);
+    if (owner) owner.activeBombs = Math.max(0, owner.activeBombs - 1);
 
-    checkPlayerDamage(x, y) {
-        for (const player of this.players.values()) {
-            if (!player.alive) continue;
-            const cx = player.x + 16, cy = player.y + 16;
-            if (Math.abs(cx - (x + 20)) < 20 && Math.abs(cy - (y + 20)) < 20) {
-                player.lives--;
-                if (player.lives <= 0) player.alive = false;
-            }
-        }
-    }
+    for (const pos of this.getExplosionArea(bomb.x, bomb.y, bomb.power)) {
+      const key = `${pos.x},${pos.y}`;
+      this.explosions.set(key, { ...pos, timer: 300 });
 
-    toJSON() {
-        return {
-            players: Array.from(this.players.values()),
-            bombs: Array.from(this.bombs.values()),
-            explosions: Array.from(this.explosions.values()),
-            powerups: Array.from(this.powerups.values()),
-            walls: Array.from(this.walls),
-            blocks: Array.from(this.blocks),
-            mapWidth: this.mapWidth,
-            mapHeight: this.mapHeight,
-            tileSize: this.tileSize
-        };
+      const cell = `${pos.x / this.tileSize},${pos.y / this.tileSize}`;
+      if (this.blocks.has(cell)) {
+        this.blocks.delete(cell);
+        this.maybeSpawnPowerup(pos.x, pos.y);
+      }
+
+      this.checkPlayerDamage(pos.x, pos.y);
+
+      if (this.bombs.has(key)) this.explodeBomb(this.bombs.get(key), key);
     }
+  }
+
+  getExplosionArea(x, y, power) {
+    const res = [{ x, y }];
+    const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    for (const [dx, dy] of dirs) {
+      for (let i = 1; i <= power; i++) {
+        const nx = x + dx * i * this.tileSize;
+        const ny = y + dy * i * this.tileSize;
+        if (nx < 0 || ny < 0 || nx >= this.mapWidth || ny >= this.mapHeight) break;
+        const cell = `${nx / this.tileSize},${ny / this.tileSize}`;
+        if (this.walls.has(cell)) break;
+        res.push({ x: nx, y: ny });
+        if (this.blocks.has(cell)) break;
+      }
+    }
+    return res;
+  }
+
+  checkPlayerDamage(exX, exY) {
+    const exCx = exX + this.tileSize/2, exCy = exY + this.tileSize/2, r = this.tileSize/2;
+    for (const p of this.players.values()) {
+      if (!p.alive) continue;
+      const pcx = p.x + this.playerSize/2, pcy = p.y + this.playerSize/2;
+      if (Math.abs(pcx - exCx) < r && Math.abs(pcy - exCy) < r) {
+        if (--p.lives <= 0) p.alive = false;
+      }
+    }
+  }
+
+
+  toJSON() {
+    return {
+      players   : Array.from(this.players.values()),
+      bombs     : Array.from(this.bombs.values()),
+      explosions: Array.from(this.explosions.values()),
+      powerups  : Array.from(this.powerups.values()),
+      walls     : Array.from(this.walls),
+      blocks    : Array.from(this.blocks),
+      mapWidth  : this.mapWidth,
+      mapHeight : this.mapHeight,
+      tileSize  : this.tileSize
+    };
+  }
 }
 
-export default GameState; 
+export default GameState;

@@ -7,10 +7,9 @@ const MAX_PLAYERS_PER_ROOM = 4;
 const MIN_PLAYERS_TO_START = 2;
 const WAIT_BEFORE_COUNTDOWN_MS = 20_000;
 const COUNTDOWN_MS = 10_000;
-const TICK_RATE_MS = 50; // ~20fps simulation tick
-
+const TICK_RATE_MS = 50; 
 let ROOM_SEQ = 1;
-const rooms = new Map(); // roomId -> {id,gameState,stateInfo:{...}}
+const rooms = new Map(); 
 
 function createRoom() {
     const id = `r_${ROOM_SEQ++}`;
@@ -45,6 +44,7 @@ function findAvailableRoom() {
 }
 
 
+
 function roomBroadcast(room, msg) {
     const str = JSON.stringify(msg);
     for (const p of room.stateInfo.players) {
@@ -76,8 +76,7 @@ function roomStartWaiting(room) {
         roomBroadcast(room, { type: 'waiting', payload: { waiting: l.waitingRemaining } });
         if (l.waitingRemaining <= 0) {
             clearInterval(l.waitingTimer); l.waitingTimer = null;
-            if (l.players.length >= MIN_PLAYERS_TO_START && !l.gameStarted) {                room.stateInfo.starCout10S = true
-
+            if (l.players.length >= MIN_PLAYERS_TO_START && !l.gameStarted) {
                 roomStartCountdown(room);
                 room.stateInfo.starCout10S = true
             }
@@ -172,7 +171,7 @@ setInterval(() => {
             const win = alive[0];
 
             for (const player of l.players.values()) {
-                
+
                 player.ws.send(JSON.stringify({
                     type: win.nickname === player.nickname ? 'win' : 'lose',
                     payload: { id: player.id, nickname: player.nickname }
@@ -265,7 +264,6 @@ wss.on('connection', ws => {
             return;
         }
     });
-
     ws.on('close', () => {
         if (!myRoom || !myPlayer) return;
         const l = myRoom.stateInfo;
@@ -275,18 +273,42 @@ wss.on('connection', ws => {
             myRoom.gameState.removePlayer(myPlayer.id);
         } else {
             l.players = l.players.filter(p => p.id !== myPlayer.id);
+
+            if (l.starCout10S && l.players.length < 2) {
+                console.log(`[ROOM ${myRoom.id}] countdown canceled due to insufficient players`);
+                if (l.countdownTimer) {
+                    clearInterval(l.countdownTimer);
+                    l.countdownTimer = null;
+                }
+                l.starCout10S = false;
+                roomStartWaiting(myRoom);
+            }
+
+            // Cancel waiting/countdown if players not enough
             if (l.players.length < MIN_PLAYERS_TO_START) {
                 if (l.waitingTimer) { clearInterval(l.waitingTimer); l.waitingTimer = null; }
                 if (l.countdownTimer) { clearInterval(l.countdownTimer); l.countdownTimer = null; }
             }
+
             roomSendPlayerList(myRoom);
         }
 
-        roomBroadcast(myRoom, { type: 'chat', payload: { nickname: 'System', message: `${nick} left.` } });
+        roomBroadcast(myRoom, {
+            type: 'chat',
+            payload: { nickname: 'System', message: `${nick} left.` }
+        });
 
-        if (!l.gameStarted && l.players.length === 0) {
-            rooms.delete(myRoom.id);
-            console.log(`🗑️ [ROOM ${myRoom.id}] removed (empty)`);
-        }
+        setTimeout(() => {
+            const currentRoom = rooms.get(myRoom.id);
+            if (!currentRoom) return;
+            const l2 = currentRoom.stateInfo;
+
+            if (!l2.gameStarted && !l2.starCout10S && l2.players.length <= 0) {
+                roomBroadcast(currentRoom, { type: 'restart' });
+                rooms.delete(currentRoom.id);
+                console.log(`🗑️ [ROOM ${currentRoom.id}] removed (empty)`);
+            }
+        }, 3000);
     });
+
 });

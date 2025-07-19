@@ -1,7 +1,7 @@
 import { createVNode } from '../framework/core.js';
 
 export function renderGame(state, playerId) {
-    if(!state || !playerId) return;
+    if (!state || !playerId) return;
     // Helper to render powerups
     const renderPowerups = () =>
         state.powerups.map(powerup =>
@@ -27,6 +27,42 @@ export function renderGame(state, playerId) {
                 style: `left: ${bomb.x + 4}px; top: ${bomb.y + 4}px; width: 32px; height: 32px; position: absolute; z-index: 5;`
             })
         );
+    const renderBorderWalls = () => {
+        const t = state.tileSize;
+        const w = state.mapWidth / t;
+        const h = state.mapHeight / t;
+        const nodes = [];
+
+        for (let x = -1; x <= w; x++) {
+            const left = x * t;
+            nodes.push(createVNode('img', {
+                class: 'wall border-wall',
+                src: 'images/wall.png',
+                style: `position:absolute; left:${left}px; top:${-t}px; width:${t}px; height:${t}px; z-index:2;`
+            }));
+            nodes.push(createVNode('img', {
+                class: 'wall border-wall',
+                src: 'images/wall.png',
+                style: `position:absolute; left:${left}px; top:${h * t}px; width:${t}px; height:${t}px; z-index:2;`
+            }));
+        }
+
+        for (let y = 0; y < h; y++) {
+            const top = y * t;
+            nodes.push(createVNode('img', {
+                class: 'wall border-wall',
+                src: 'images/wall.png',
+                style: `position:absolute; left:${-t}px; top:${top}px; width:${t}px; height:${t}px; z-index:2;`
+            }));
+            nodes.push(createVNode('img', {
+                class: 'wall border-wall',
+                src: 'images/wall.png',
+                style: `position:absolute; left:${w * t}px; top:${top}px; width:${t}px; height:${t}px; z-index:2;`
+            }));
+        }
+        return nodes;
+    };
+
 
     // Helper to render explosions
     const renderExplosions = () =>
@@ -39,33 +75,54 @@ export function renderGame(state, playerId) {
             })
         );
 
+
+    const hueCache = new Map();
+
+    function getHueForPlayer(id, idx) {
+        if (hueCache.has(id)) return hueCache.get(id);
+
+        const base = [0, 130, 250, 50];
+        let hue = base[idx % base.length]
+        if (idx >= base.length) {
+            hue = (idx * 80) % 360;
+        }
+        hueCache.set(id, hue);
+        return hue;
+    }
+
     // Helper to render players
-    const renderPlayers = () =>
-        state.players.filter(p => p.alive).map(p =>
-            createVNode('div', {
+    const renderPlayers = () => {
+        const TILE = state.tileSize || 32;
+        const SCALE = 1.25;
+        const OFFSET = (TILE * SCALE - TILE) / 2;
+
+        return state.players.filter(p => p.alive).map((p, idx) => {
+            const hue = getHueForPlayer(p.id, idx);
+            return createVNode('div', {
                 class: `Character ${p.id === playerId ? 'me' : ''}`,
                 style: `
-        left: ${p.x}px;
-        top: ${p.y}px;
-        position: absolute;
-        z-index: 10;
-        width: 32px;
-        height: 32px;
+        position:absolute;
+        left:0; top:0;
+        transform:translate(${p.x - OFFSET}px, ${p.y - OFFSET}px) scale(${SCALE});
+        transform-origin:top left;
+        width:${TILE}px; height:${TILE}px;
+        --hue:${hue}deg;
+        pointer-events:none;
+        z-index:10;
       `
             }, [
                 createVNode('img', {
                     class: 'Character_shadow pixelart',
-                    src: 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/21542/DemoRpgCharacterShadow.png',
-                    alt: 'Shadow'
+                    src: 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/21542/DemoRpgCharacterShadow.png'
                 }),
                 createVNode('img', {
                     class: `Character_spritesheet pixelart face-${p.dir || 'down'}`,
                     src: 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/21542/DemoRpgCharacter.png',
-                    alt: p.nickname,
-                    title: p.nickname
+                    alt: p.nickname, title: p.nickname
                 })
-            ])
-        );
+            ]);
+        });
+    };
 
 
 
@@ -129,6 +186,7 @@ export function renderGame(state, playerId) {
             ])
         ]),
         createVNode('div', { id: 'game-map', class: 'game-map', style: 'position: relative;' }, [
+            ...renderBorderWalls(),
             ...renderWalls(),
             ...renderBlocks(),
             ...renderPowerups(),

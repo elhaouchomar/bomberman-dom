@@ -26,7 +26,7 @@ export function attachViewGlobalEvents() {
 
     if (e.target.id === 'restart-btn') {
       socket.send(JSON.stringify({ type: 'restart' }));
-      
+
     }
   };
 
@@ -53,7 +53,7 @@ export function AppView(state) {
 }
 
 function NicknameScreen(state) {
-  return createVNode('div', { class: 'screen', id: 'nickname-screen' }, [
+  return createVNode('div', { class: 'bomber', id: 'nickname-screen' }, [
     createVNode('h1', {}, '🎮 BOMBERMAN DOM'),
     createVNode('input', {
       id: 'nickname-input',
@@ -66,7 +66,7 @@ function NicknameScreen(state) {
     }),
     createVNode('button', {
       id: 'join-btn',
-      ref: el => refs.joinBtn = el,
+      ref: el => { console.log('eeeeeeeeeeel', refs), refs.joinBtn = el, console.log('refs.joinBtn', refs.joinBtn); },
       class: 'btn'
     }, 'Join Game'),
     ErrorBanner(state)
@@ -75,7 +75,7 @@ function NicknameScreen(state) {
 
 function WaitingScreen(state) {
   return createVNode('div', {
-    class: 'screen',
+    class: 'waiting',
     id: 'waiting-screen',
     style: `display:${state.screen === 'waiting' ? 'block' : 'none'}`
   }, [
@@ -102,27 +102,38 @@ function GameScreen(state) {
 
 function ChatOverlay(state) {
   return createVNode('div', { class: 'chat-overlay' }, [
+
+    /* messages */
     createVNode('div', { id: 'chat-messages', class: 'chat-messages' },
       state.chatMessages.map(msg =>
-        createVNode('div', {}, `${msg.nickname}: ${msg.message}`)
+        createVNode('div', { class: 'chat-msg' }, `${msg.nickname}: ${msg.message}`)
       )
     ),
-    createVNode('div', { class: 'chat-input-container' }, [
+
+    /* input + icon (single relative container) */
+    createVNode('div', { class: 'chat-row' }, [
+
+      /* text box */
       createVNode('input', {
         id: 'chat-input',
-        ref: el => refs.chatInput = el,
+        ref: el => (refs.chatInput = el),
         class: 'chat-input',
         type: 'text',
         placeholder: 'Type message…'
       }),
+
+      /* invisible button that sits ON the input */
       createVNode('button', {
         id: 'chat-send',
-        ref: el => refs.chatSend = el,
-        class: 'chat-send'
-      }, 'Send')
+        ref: el => (refs.chatSend = el),
+        class: 'chat-send',
+        title: 'Send'
+      }, '➤'),
     ])
   ]);
 }
+
+
 
 function ErrorBanner(state) {
   return state.error
@@ -132,10 +143,10 @@ function ErrorBanner(state) {
 
 function WinnerBanner(data) {
   const message = data.type === 'win' ?
-      ` 🎉 Congratulations, ${data.winner.nickname}! You are the winner of the game! 🏆` :
-      data.type === 'lose' ? `💀 Sorry, ${data.winner.nickname}! you have lost the game. Better luck next game! 💪` :
+    ` 🎉 Congratulations, ${data.winner.nickname}! You are the winner of the game! 🏆` :
+    data.type === 'lose' ? `💀 Sorry, ${data.winner.nickname}! you have lost the game. Better luck next game! 💪` :
       `☠️ All players have died. Game Over.`;
-   return createVNode('div', { class: 'winner-overlay' }, [
+  return createVNode('div', { class: 'winner-overlay' }, [
     createVNode('div', { class: 'winner-banner' }, message),
     createVNode('button', {
       id: 'restart-btn',
