@@ -228,7 +228,7 @@ wss.on('connection', ws => {
 
             myPlayer = { id: playerId, nickname, ws, playerNum };
             l.players.push(myPlayer);
-            console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",l.players.length);
+            // console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",l.players.length);
             ws.playerId = playerId;
             ws.roomId = myRoom.id;
 
