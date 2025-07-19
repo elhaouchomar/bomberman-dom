@@ -322,6 +322,4 @@ wss.on('connection', ws => {
 });
 
 /* ---------- start server ---------- */
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`HTTP static + WS listening on http://localhost:${PORT}`);
-});
+server.listen(PORT, '0.0.0.0');
