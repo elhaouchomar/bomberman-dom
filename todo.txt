@@ -1,5 +1,0 @@
-- player 2 enter directly to waiting (need to reload second tab so it works and give name input)
-- player 2> isn't working
-- style (player and stuff)
-- painting and performance stuff
-- make the state general again (state {})

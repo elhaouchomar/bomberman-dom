@@ -15,7 +15,6 @@ export class EventManager {
       delete el._eventId;
     }
   }
-
 }
 
 export const events = new EventManager();

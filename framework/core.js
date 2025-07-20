@@ -1,5 +1,7 @@
 import { events } from './event.js';
 
+export const refs = {};
+
 // vnode factory
 export const createVNode = (tag, attrs = {}, children = []) => ({
   tag,
@@ -17,6 +19,7 @@ let rootElement = null;
 export const render = (vnode, container = document.body) => {
   if (!container || !(container instanceof HTMLElement))
     throw new Error('Invalid container element');
+  Object.keys(refs).forEach(key => delete refs[key]);
 
   if (!currentVNode) {
     container.innerHTML = '';
@@ -137,14 +140,14 @@ const applyPatches = (dom, patch) => {
         dom.parentNode.removeChild(dom);
       }
       break;
-    case 'TEXT':      
+    case 'TEXT':
       if (dom.textContent !== patch.value) dom.textContent = patch.value;
       break;
 
     case 'UPDATE': {
       if (patch.attrs) {
         for (const [k, v] of Object.entries(patch.attrs)) {
-          if (k === 'ref' && typeof v === 'function') {            
+          if (k === 'ref' && typeof v === 'function') {
             v(dom)
           } else if (k === 'value') {
             if (dom.value !== v) dom.value = v;
