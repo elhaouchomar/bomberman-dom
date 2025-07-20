@@ -5,10 +5,10 @@ import { renderGame } from './renderer.js';
 import { events } from '../framework/event.js';
 
 const CHAT_COLORS = [
-  '#ff4040', // red
-  '#00ff40ff', // green
-  '#0080ff', // blue
-  '#ff7b00', // orange
+  '#40ffbfff', // red
+  '#f1f514ff', // green
+  '#d12a99ff', // blue
+  '#b9b9b9ff', // orange
   '#b56bff', // purple fallback
 ];
 

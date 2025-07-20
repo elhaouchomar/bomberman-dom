@@ -139,7 +139,7 @@ class GameState {
       p.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy < 0 ? 'up' : 'down';
 
       const slowFactor = p.slideSlowTicks ? 0.5 : 1;    // slower while sliding
-      const pixelNumber = Math.max(1, Math.floor(p.speed * 2 * slowFactor));
+      const pixelNumber = Math.max(1, Math.floor(p.speed * 1.5 * slowFactor));
       const maxSlideDistance = Math.min(pixelNumber, 16);
 
       const stepX = Math.sign(dx);

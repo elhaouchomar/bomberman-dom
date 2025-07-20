@@ -34,12 +34,7 @@
 }
 
 ::selection {
-<<<<<<< HEAD
   background: rgba(255, 255, 120, 0.35); /* light glowing yellow */
-=======
-  background: rgba(255, 255, 120, 0.35);
-  /* light glowing yellow */
->>>>>>> origin/ayoub
   color: #fff;
   text-shadow: 0 0 4px #ffea52, 0 0 8px #ffea52;
 }
@@ -254,11 +249,7 @@ body::before {
   padding-top: 1rem;
   padding-bottom: 1rem !important;
   margin-top: .5rem;
-<<<<<<< HEAD
   flex:0 0 auto;
-=======
-  flex: 0 0 auto;
->>>>>>> origin/ayoub
 }
 
 .btn::before,
@@ -347,15 +338,6 @@ body::before {
   font-size: 12px;
 }
 
-<<<<<<< HEAD
-@media (max-width: 1350px) {
-  .chat-overlay {
-    display: none;
-  }
-}
-
-=======
->>>>>>> origin/ayoub
 .chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -706,8 +688,6 @@ body::before {
   to {
     transform: rotate(12deg)
   }
-<<<<<<< HEAD
-=======
 }
 
 .chat-toggle-btn {
@@ -769,5 +749,4 @@ body::before {
   }
 
   /* make room for toggle button */
->>>>>>> origin/ayoub
 }
