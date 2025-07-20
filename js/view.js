@@ -2,12 +2,13 @@ import { createVNode, refs } from '../framework/core.js';
 import store from '../framework/state.js';
 import { socket } from './websocket.js';
 import { renderGame } from './renderer.js';
+import { events } from '../framework/event.js';
 
 const CHAT_COLORS = [
   '#ff4040', // red
   '#00ff40ff', // green
-  '#ff7b00', // orange
   '#0080ff', // blue
+  '#ff7b00', // orange
   '#b56bff', // purple fallback
 ];
 
@@ -59,16 +60,55 @@ export function attachViewGlobalEvents() {
       refs.chatSend?.click();
     }
   };
+
+  if (!window.__chatResizeBound) {
+    window.__chatResizeBound = true;
+    const resizeHandler = () => {
+      const wide = window.innerWidth >= 1350;
+      if (wide !== store.getState().viewportWide) {
+        const patch = { viewportWide: wide };
+        if (wide) patch.chatDockOpen = true;  // force open when becoming wide
+        store.setState(patch);
+      }
+    };
+    events.on(window, 'resize', resizeHandler);
+    resizeHandler();
+  }
+
 }
 
 export function AppView(state) {
   return createVNode('div', { class: 'app' }, [
     state.screen === 'nickname' && NicknameScreen(state),
     state.screen === 'waiting' && WaitingScreen(state),
-    state.chatVisible && ChatOverlay(state),
     state.screen === 'game' && GameScreen(state),
-    state.screen === 'winner' && WinnerBanner(state)
+    state.screen === 'winner' && WinnerBanner(state),
+    ChatRegion(state) // (only place you render chat now)
   ]);
+}
+
+function ChatRegion(state) {
+  const wide = state.viewportWide;                 // or window.innerWidth >= 1350
+  const nonNickname = state.screen !== 'nickname';
+  const shouldShow = nonNickname && (wide || state.chatDockOpen);
+
+  return createVNode('div', {}, [
+    shouldShow && ChatOverlay(state),
+    (nonNickname && !wide) && ChatToggleButton(state)
+  ]);
+}
+
+function ChatToggleButton(state) {
+  const open = state.chatDockOpen;
+  return createVNode('button', {
+    class: 'chat-toggle-btn' + (open ? ' open' : ''),
+    title: open ? 'Hide chat' : 'Show chat',
+    onclick: () => {
+      const cur = store.getState().chatDockOpen;
+      store.setState({ chatDockOpen: !cur });
+      if (!cur) setTimeout(() => refs.chatInput?.focus(), 0);
+    }
+  }, open ? '✕' : '💬');   // Only icon characters
 }
 
 function NicknameScreen(state) {
