@@ -151,7 +151,7 @@ function NicknameScreen(state) {
 
 function WaitingScreen(state) {
   const showCountdown = state.playerCount === 4;
-  const countdownText = showCountdown
+  const countdownText = showCountdown || state.countdown
     ? `Starting Game... ${state.countdown || 10}s`
     : `Waiting for more players... ${state.waitingTime || 20}s`;
 
