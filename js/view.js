@@ -216,7 +216,6 @@ function ChatOverlay(state) {
   ]);
 }
 
-
 function ErrorBanner(state) {
   return state.error
     ? createVNode('div', { class: 'error-banner' }, state.error)

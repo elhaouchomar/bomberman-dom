@@ -68,113 +68,115 @@ function safeSend(obj) {
 
 function handleMessage(evt) {
   let msg;
-  try { msg = JSON.parse(evt.data); } catch { return; }
-  const { type, payload } = msg;
+  try {
+    msg = JSON.parse(evt.data);
+    const { type, payload } = msg;
 
-  switch (type) {
-    case 'playerId': {
-      // new payload: {playerId,playerNum?,roomId?} OR legacy string
-      const pId = payload.playerId || payload;
-      const roomId = payload.roomId || null;
-      if (roomId) lastRoomId = roomId;
-      store.setState({
-        playerId: pId,
-        screen: 'waiting',
-        error: ''
-      });
-      break;
-    }
+    switch (type) {
+      case 'playerId': {
+        // new payload: {playerId,playerNum?,roomId?} OR legacy string
+        const pId = payload.playerId || payload;
+        const roomId = payload.roomId || null;
+        if (roomId) lastRoomId = roomId;
+        store.setState({
+          playerId: pId,
+          screen: 'waiting',
+          error: ''
+        });
+        break;
+      }
 
-    case 'playerList': {
-      store.setState({
-        players: payload,
-        playerCount: payload.length,
-        error: ''
-      });
-      break;
-    }
+      case 'playerList': {
+        store.setState({
+          players: payload,
+          playerCount: payload.length,
+          error: ''
+        });
+        break;
+      }
 
-    case 'waiting': {
-      store.setState({
-        screen: 'waiting',
-        waitingTime: payload.waiting,
-        chatVisible: true,
-        error: ''
-      });
-      break;
-    }
+      case 'waiting': {
+        store.setState({
+          screen: 'waiting',
+          waitingTime: payload.waiting,
+          chatVisible: true,
+          error: ''
+        });
+        break;
+      }
 
-    case 'countdown': {
-      store.setState({
-        screen: 'waiting',
-        countdown: payload.countdown,
-        // waitingTime: 0,
-        error: ''
-      });
-      break;
-    }
+      case 'countdown': {
+        store.setState({
+          screen: 'waiting',
+          countdown: payload.countdown,
+          // waitingTime: 0,
+          error: ''
+        });
+        break;
+      }
 
-    case 'gameStart': {
-      store.setState({
-        screen: 'game',
-        gameStarted: true,
-        chatVisible: true,
-        error: ''
-      });
-      break;
-    }
+      case 'gameStart': {
+        store.setState({
+          screen: 'game',
+          gameStarted: true,
+          chatVisible: true,
+          error: ''
+        });
+        break;
+      }
 
-    case 'state': {
-      store.setState({ gameState: payload });
-      break;
-    }
+      case 'state': {
+        store.setState({ gameState: payload });
+        break;
+      }
 
-    case 'chat': {
-      store.setState({
-        chatMessages: [...store.getState().chatMessages, payload],
-        error: ''
-      });
-      setTimeout(() => {
-        const box = refs?.chatMessages;
-        if (box) box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-      }, 0);
-      break;
-    }
+      case 'chat': {
+        store.setState({
+          chatMessages: [...store.getState().chatMessages, payload],
+          error: ''
+        });
+        setTimeout(() => {
+          const box = refs?.chatMessages;
+          if (box) box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+        }, 0);
+        break;
+      }
 
-    case 'restart': {
-      store.setState({
-        screen: 'nickname',
-        error: '',
-        winner: null,
-        chatMessages: [] // Clear chat messages on restart
-      });
-      break;
-    }
-    case 'win': case 'lose': {
-      store.setState({
-        winner: payload,
-        screen: 'winner',
-        gameStarted: false,
-        error: '',
-        type: type
-      });
-      break;
-    }
+      case 'restart': {
+        store.setState({
+          screen: 'nickname',
+          error: '',
+          winner: null,
+          chatMessages: [] // Clear chat messages on restart
+        });
+        break;
+      }
+      case 'win': case 'lose': {
+        store.setState({
+          winner: payload,
+          screen: 'winner',
+          gameStarted: false,
+          error: '',
+          type: type
+        });
+        break;
+      }
 
-    case 'died': {
-      store.setState({
-        players: payload,
-        type: type,
-        winner: null,
-        screen: 'winner',
-        gameStarted: false,
-        error: '',
-      });
-    }
+      case 'died': {
+        store.setState({
+          players: payload,
+          type: type,
+          winner: null,
+          screen: 'winner',
+          gameStarted: false,
+          error: '',
+        });
+      }
 
-    case 'error': {
-      store.setState({ error: payload.message });
-      break;
+      case 'error': {
+        store.setState({ error: payload.message });
+        break;
+      }
     }
-  }
+  } catch { return; }
 }

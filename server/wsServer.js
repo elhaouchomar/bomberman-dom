@@ -219,64 +219,68 @@ wss.on('connection', ws => {
     let myPlayer = null;
 
     ws.on('message', raw => {
-        let msg; try { msg = JSON.parse(raw); } catch { return; }
-        const { type, payload = {} } = msg;
+        let msg;
+        try {
+            msg = JSON.parse(raw);
+            const { type, payload = {} } = msg;
 
-        if (type === 'join' && !myPlayer) {
-            const nicknameRaw = String(payload.nickname || '').trim();
-            if (!nicknameRaw) {
-                ws.send(JSON.stringify({ type: 'error', payload: { message: 'Nickname required.' } }));
+            if (type === 'join' && !myPlayer) {
+                const nicknameRaw = String(payload.nickname || '').trim();
+                if (!nicknameRaw) {
+                    ws.send(JSON.stringify({ type: 'error', payload: { message: 'Nickname required.' } }));
+                    return;
+                }
+                const requestedRoom = payload.roomId ? rooms.get(payload.roomId) : null;
+                myRoom = (payload.newRoom ? createRoom() : null) || requestedRoom || findAvailableRoom();
+                const l = myRoom.stateInfo;
+
+                const nickLower = nicknameRaw.toLowerCase();
+                const dupStateInfo = l.players.some(p => p.nickname.toLowerCase() === nickLower);
+                if (dupStateInfo) {
+                    ws.send(JSON.stringify({ type: 'error', payload: { message: `Username "${nicknameRaw}" is taken in this room.` } }));
+                    return;
+                }
+
+                const playerId = 'p_' + Math.random().toString(36).slice(2, 8);
+                const nickname = nicknameRaw.slice(0, 15);
+                const playerNum = l.nextPlayerNum++;
+
+                myPlayer = { id: playerId, nickname, ws, playerNum };
+                l.players.push(myPlayer);
+                ws.playerId = playerId;
+                ws.roomId = myRoom.id;
+
+                ws.send(JSON.stringify({ type: 'playerId', payload: { playerId, playerNum, roomId: myRoom.id } }));
+                roomSendPlayerList(myRoom);
+                roomBroadcast(myRoom, { type: 'chat', payload: { nickname: 'System', message: `${nickname} joined.` } });
+
+                if (l.players.length >= MAX_PLAYERS_PER_ROOM) {
+                    roomStartCountdown(myRoom);
+                } else if (l.players?.length >= MIN_PLAYERS_TO_START) {
+                    roomStartWaiting(myRoom);
+                }
+                return;
+
+            }
+
+            if (type === 'chat' && myRoom && myPlayer) {
+                const message = String(payload.message || '').slice(0, 200);
+                roomBroadcast(myRoom, { type: 'chat', payload: { nickname: myPlayer.nickname, message } });
                 return;
             }
-            const requestedRoom = payload.roomId ? rooms.get(payload.roomId) : null;
-            myRoom = (payload.newRoom ? createRoom() : null) || requestedRoom || findAvailableRoom();
-            const l = myRoom.stateInfo;
 
-            const nickLower = nicknameRaw.toLowerCase();
-            const dupStateInfo = l.players.some(p => p.nickname.toLowerCase() === nickLower);
-            if (dupStateInfo) {
-                ws.send(JSON.stringify({ type: 'error', payload: { message: `Username "${nicknameRaw}" is taken in this room.` } }));
+            if (type === 'action' && myRoom && myPlayer && myRoom.stateInfo.gameStarted) {
+                myRoom.gameState.applyAction(myPlayer.id, payload);
                 return;
             }
 
-            const playerId = 'p_' + Math.random().toString(36).slice(2, 8);
-            const nickname = nicknameRaw.slice(0, 15);
-            const playerNum = l.nextPlayerNum++;
-
-            myPlayer = { id: playerId, nickname, ws, playerNum };
-            l.players.push(myPlayer);
-            ws.playerId = playerId;
-            ws.roomId = myRoom.id;
-
-            ws.send(JSON.stringify({ type: 'playerId', payload: { playerId, playerNum, roomId: myRoom.id } }));
-            roomSendPlayerList(myRoom);
-            roomBroadcast(myRoom, { type: 'chat', payload: { nickname: 'System', message: `${nickname} joined.` } });
-
-            if (l.players.length >= MAX_PLAYERS_PER_ROOM) {
-                roomStartCountdown(myRoom);
-            } else if (l.players?.length >= MIN_PLAYERS_TO_START) {
-                roomStartWaiting(myRoom);
+            if (type === 'restart') {
+                myPlayer = null;
+                roomEndGame(myRoom);
+                ws.send(JSON.stringify({ type: 'restart' }));
+                return;
             }
-            return;
-        }
-
-        if (type === 'chat' && myRoom && myPlayer) {
-            const message = String(payload.message || '').slice(0, 200);
-            roomBroadcast(myRoom, { type: 'chat', payload: { nickname: myPlayer.nickname, message } });
-            return;
-        }
-
-        if (type === 'action' && myRoom && myPlayer && myRoom.stateInfo.gameStarted) {
-            myRoom.gameState.applyAction(myPlayer.id, payload);
-            return;
-        }
-
-        if (type === 'restart') {
-            myPlayer = null;
-            roomEndGame(myRoom);
-            ws.send(JSON.stringify({ type: 'restart' }));
-            return;
-        }
+        } catch { return; }
     });
 
     ws.on('close', () => {
