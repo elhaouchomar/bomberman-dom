@@ -125,7 +125,6 @@ export function renderGame(state, playerId) {
     };
 
 
-
     // Helper to render walls
     const renderWalls = () =>
         state.walls.map(key => {

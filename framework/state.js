@@ -35,6 +35,8 @@ let state = {
 
   // Error/Notifications
   error: '',            // Error messages to display to the user
+  chatDockOpen: true,
+  viewportWide: window.innerWidth >= 1350,
 
   // Any other UI state
   // e.g., modalVisible: false, etc.
@@ -48,9 +50,9 @@ export const store = {
     return { ...state };
   },
 
-  setState(partial) {    
+  setState(partial) {
     state = { ...state, ...partial };   // simple, generic merge
-    subscribers?.forEach( fn => { fn()});    // notify after every commit
+    subscribers?.forEach(fn => { fn() });    // notify after every commit
   },
 
   /* subscribe returns an "unsubscribe" function */

@@ -34,7 +34,8 @@
 }
 
 ::selection {
-  background: rgba(255, 255, 120, 0.35); /* light glowing yellow */
+  background: rgba(255, 255, 120, 0.35);
+  /* light glowing yellow */
   color: #fff;
   text-shadow: 0 0 4px #ffea52, 0 0 8px #ffea52;
 }
@@ -249,7 +250,7 @@ body::before {
   padding-top: 1rem;
   padding-bottom: 1rem !important;
   margin-top: .5rem;
-  flex:0 0 auto;
+  flex: 0 0 auto;
 }
 
 .btn::before,
@@ -336,12 +337,6 @@ body::before {
   flex-direction: column;
   box-shadow: 0 8px 24px rgba(0, 0, 0, .55);
   font-size: 12px;
-}
-
-@media (max-width: 1350px) {
-  .chat-overlay {
-    display: none;
-  }
 }
 
 .chat-messages {
@@ -694,4 +689,65 @@ body::before {
   to {
     transform: rotate(12deg)
   }
+}
+
+.chat-toggle-btn {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30% 30%, var(--game-accent) 0%, var(--game-accent-hover) 70%);
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--game-accent-glow), 0 0 22px var(--game-accent-glow) inset, 0 4px 12px rgba(0, 0, 0, .5);
+  transition: transform .18s ease, box-shadow .25s ease, background .4s;
+  font-family: var(--font-ui);
+  user-select: none;
+}
+
+.chat-toggle-btn:hover {
+  transform: translateY(-4px) scale(1.07);
+  box-shadow:
+    0 0 14px var(--game-accent-glow),
+    0 0 28px var(--game-accent-glow) inset,
+    0 6px 16px rgba(0, 0, 0, .6);
+}
+
+.chat-toggle-btn:active {
+  transform: translateY(0) scale(.92);
+}
+
+.chat-toggle-btn.open {
+  background: radial-gradient(circle at 70% 70%, var(--game-accent-hover) 0%, var(--game-accent) 70%);
+}
+
+.chat-toggle-btn:focus {
+  outline: 2px solid var(--neon-cyan);
+  outline-offset: 2px;
+}
+
+.chat-toggle-btn:not(.open) {
+  animation: chatPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes chatPulse {
+  50% {
+    box-shadow: 0 0 18px var(--game-accent-glow), 0 0 34px var(--game-accent-glow) inset;
+  }
+}
+
+@media (max-width:1350px) {
+  .chat-overlay {
+    bottom: 60px;
+  }
+
+  /* make room for toggle button */
 }
