@@ -17,29 +17,29 @@ class GameState {
 
 
   isValidPosition(x, y, selfId = null) {
-    const s = this.playerSize - 1;
-    if (x < 0 || y < 0 || x + s >= this.mapWidth || y + s >= this.mapHeight) return false;
+    const playerCollisionSize = this.playerSize - 1;
+    if (x < 0 || y < 0 || x + playerCollisionSize >= this.mapWidth || y + playerCollisionSize >= this.mapHeight) return false;
 
     const ok = (cx, cy) => {
       const key = `${Math.floor(cx / this.tileSize)},${Math.floor(cy / this.tileSize)}`;
       return !this.walls.has(key) && !this.blocks.has(key);
     };
-    if (!ok(x, y) || !ok(x + s, y) || !ok(x, y + s) || !ok(x + s, y + s)) return false;
+    if (!ok(x, y) || !ok(x + playerCollisionSize, y) || !ok(x, y + playerCollisionSize) || !ok(x + playerCollisionSize, y + playerCollisionSize)) return false;
 
     for (const bomb of this.bombs.values()) {
       if (selfId && bomb.owner === selfId) continue;
       if (
-        x + s > bomb.x && x < bomb.x + this.tileSize &&
-        y + s > bomb.y && y < bomb.y + this.tileSize
+        x + playerCollisionSize > bomb.x && x < bomb.x + this.tileSize &&
+        y + playerCollisionSize > bomb.y && y < bomb.y + this.tileSize
       ) return false;
     }
 
-    for (const other of this.players.values()) {
-      if (!other.alive) continue;
-      if (selfId && other.id === selfId) continue;
+    for (const otherPlayer of this.players.values()) {
+      if (!otherPlayer.alive) continue;
+      if (selfId && otherPlayer.id === selfId) continue;
       if (
-        x + s > other.x && x < other.x + this.playerSize &&
-        y + s > other.y && y < other.y + this.playerSize
+        x + playerCollisionSize > otherPlayer.x && x < otherPlayer.x + this.playerSize &&
+        y + playerCollisionSize > otherPlayer.y && y < otherPlayer.y + this.playerSize
       ) return false;
     }
 
@@ -139,30 +139,30 @@ class GameState {
       p.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy < 0 ? 'up' : 'down';
 
       const slowFactor = p.slideSlowTicks ? 0.5 : 1;    // slower while sliding
-      const pixelN = Math.max(1, Math.floor(p.speed * 2 * slowFactor));
-      const slideTol = Math.min(pixelN, 16);
+      const pixelNumber = Math.max(1, Math.floor(p.speed * 2 * slowFactor));
+      const maxSlideDistance = Math.min(pixelNumber, 16);
 
       const stepX = Math.sign(dx);
       const stepY = Math.sign(dy);
 
-      for (let i = 0; i < pixelN; i++) {
+      for (let i = 0; i < pixelNumber; i++) {
         let moved = false, slid = false;
 
         if (stepX) {
-          const nx = p.x + stepX;
-          if (this.isValidPosition(nx, p.y, p.id)) {
-            p.x = nx; moved = true;
+          const newPosX = p.x + stepX;
+          if (this.isValidPosition(newPosX, p.y, p.id)) {
+            p.x = newPosX; moved = true;
           } else {
-            const sY = this.trySlideY(p, slideTol, stepX);
-            slid = sY !== 0; moved = slid;
+            const slideAmountY = this.trySlideY(p, maxSlideDistance, stepX);
+            slid = slideAmountY !== 0; moved = slid;
           }
         } else if (stepY) {
-          const ny = p.y + stepY;
-          if (this.isValidPosition(p.x, ny, p.id)) {
-            p.y = ny; moved = true;
+          const newPosY = p.y + stepY;
+          if (this.isValidPosition(p.x, newPosY, p.id)) {
+            p.y = newPosY; moved = true;
           } else {
-            const sX = this.trySlideX(p, slideTol, stepY);
-            slid = sX !== 0; moved = slid;
+            const slideAmountX = this.trySlideX(p, maxSlideDistance, stepY);
+            slid = slideAmountX !== 0; moved = slid;
           }
         }
 
@@ -176,21 +176,21 @@ class GameState {
     else if (action.type === 'placeBomb') {
       if (p.activeBombs >= p.maxBombs) return;
 
-      const cx = p.x + this.playerSize / 2;
-      const cy = p.y + this.playerSize / 2;
-      const bx = Math.floor(cx / this.tileSize) * this.tileSize;
-      const by = Math.floor(cy / this.tileSize) * this.tileSize;
-      const key = `${bx},${by}`;
+      const playerCenterX = p.x + this.playerSize / 2;
+      const playerCenterY = p.y + this.playerSize / 2;
+      const bombTileX = Math.floor(playerCenterX / this.tileSize) * this.tileSize;
+      const bombTileY = Math.floor(playerCenterY / this.tileSize) * this.tileSize;
+      const bombKey = `${bombTileX},${bombTileY}`;
 
-      if (!this.bombs.has(key)) {
-        this.bombs.set(key, { x: bx, y: by, timer: 3000, power: p.power, owner: p.id });
+      if (!this.bombs.has(bombKey)) {
+        this.bombs.set(bombKey, { x: bombTileX, y: bombTileY, timer: 3000, power: p.power, owner: p.id });
         p.activeBombs++;
       }
     }
   }
 
 
-  maybeSpawnPowerup(x, y) {
+  createPowerup(x, y) {
     if (Math.random() < 0.30) {
       const types = ['bombs', 'flames', 'speed'];
       this.powerups.set(`${x},${y}`, { x, y, type: types[Math.floor(Math.random() * types.length)] });
@@ -198,11 +198,11 @@ class GameState {
   }
 
   checkPowerupCollection(p) {
-    const cx = p.x + 16, cy = p.y + 16;
-    for (const [id, pu] of Array.from(this.powerups.entries())) {
-      const pcx = pu.x + 20, pcy = pu.y + 20;
-      if (Math.abs(cx - pcx) < 20 && Math.abs(cy - pcy) < 20) {
-        this.applyPowerup(p, pu.type);
+    const playerCenterX = p.x + 16, playerCenterY = p.y + 16;
+    for (const [id, powerup] of Array.from(this.powerups.entries())) {
+      const powerupCenterX = powerup.x + 20, powerupCenterY = powerup.y + 20;
+      if (Math.abs(playerCenterX - powerupCenterX) < 20 && Math.abs(playerCenterY - powerupCenterY) < 20) {
+        this.applyPowerup(p, powerup.type);
         this.powerups.delete(id);
       }
     }
@@ -214,7 +214,7 @@ class GameState {
   }
 
 
-  tick(dt) {
+  updateTimers(dt) {
     for (const [id, b] of Array.from(this.bombs.entries())) {
       b.timer -= dt;
       if (b.timer <= 0) this.explodeBomb(b, id);
@@ -237,7 +237,7 @@ class GameState {
       const cell = `${pos.x / this.tileSize},${pos.y / this.tileSize}`;
       if (this.blocks.has(cell)) {
         this.blocks.delete(cell);
-        this.maybeSpawnPowerup(pos.x, pos.y);
+        this.createPowerup(pos.x, pos.y);
       }
       this.checkPlayerDamage(pos.x, pos.y);
 
@@ -248,26 +248,26 @@ class GameState {
   getExplosionArea(x, y, power) {
     const res = [{ x, y }];
     const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-    for (const [dx, dy] of dirs) {
+    for (const [dirX, dirY] of dirs) {
       for (let i = 1; i <= power; i++) {
-        const nx = x + dx * i * this.tileSize;
-        const ny = y + dy * i * this.tileSize;
-        if (nx < 0 || ny < 0 || nx >= this.mapWidth || ny >= this.mapHeight) break;
-        const cell = `${nx / this.tileSize},${ny / this.tileSize}`;
+        const newPosX = x + dirX * i * this.tileSize;
+        const newPosY = y + dirY * i * this.tileSize;
+        if (newPosX < 0 || newPosY < 0 || newPosX >= this.mapWidth || newPosY >= this.mapHeight) break;
+        const cell = `${newPosX / this.tileSize},${newPosY / this.tileSize}`;
         if (this.walls.has(cell)) break;
-        res.push({ x: nx, y: ny });
+        res.push({ x: newPosX, y: newPosY });
         if (this.blocks.has(cell)) break;
       }
     }
     return res;
   }
 
-  checkPlayerDamage(exX, exY) {
-    const eCx = exX + this.tileSize / 2, eCy = exY + this.tileSize / 2, r = this.tileSize / 2;
+  checkPlayerDamage(explosionX, explosionY) {
+    const explosionCenterX = explosionX + this.tileSize / 2, explosionCenterY = explosionY + this.tileSize / 2, explosionRadius = this.tileSize / 2;
     for (const p of this.players.values()) {
       if (!p.alive) continue;
-      const pcx = p.x + this.playerSize / 2, pcy = p.y + this.playerSize / 2;
-      if (Math.abs(pcx - eCx) < r && Math.abs(pcy - eCy) < r) {
+      const playerCenterX = p.x + this.playerSize / 2, playerCenterY = p.y + this.playerSize / 2;
+      if (Math.abs(playerCenterX - explosionCenterX) < explosionRadius && Math.abs(playerCenterY - explosionCenterY) < explosionRadius) {
         if (--p.lives <= 0) p.alive = false;
       }
     }

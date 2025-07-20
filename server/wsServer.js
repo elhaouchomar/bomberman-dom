@@ -45,8 +45,8 @@ const server = http.createServer(async (req, res) => {
 /* ---------- existing game / room logic (unchanged) ---------- */
 const MAX_PLAYERS_PER_ROOM = 4;
 const MIN_PLAYERS_TO_START = 2;
-const WAIT_BEFORE_COUNTDOWN_MS = 10_000;
-const COUNTDOWN_MS = 1_000;
+const WAIT_BEFORE_COUNTDOWN_MS = 20_000;
+const COUNTDOWN_MS = 10_000;
 const TICK_RATE_MS = 50;
 let ROOM_SEQ = 1;
 const rooms = new Map();
@@ -187,7 +187,7 @@ setInterval(() => {
         const l = room.stateInfo;
         if (!l.gameStarted) continue;
         const gs = room.gameState;
-        gs.tick(TICK_RATE_MS);
+        gs.updateTimers(TICK_RATE_MS);
         roomBroadcast(room, { type: 'state', payload: gs.toJSON() });
 
         const alive = Array.from(gs.players.values()).filter(p => p.alive);

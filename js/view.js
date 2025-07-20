@@ -178,7 +178,7 @@ function ErrorBanner(state) {
 function WinnerBanner(data) {
   const message = data.type === 'win' ?
     ` 🎉 Congratulations, ${data.winner.nickname}! You are the winner of the game! 🏆` :
-    data.type === 'lose' ? `💀 Sorry, ${data.winner.nickname}! you have lost the game. Better luck next game! 💪` :
+    data.type === 'lose' ? `💀 Sorry, ${data.winner.nickname}! you have lost the game. Better luck next game! 😞` :
       `☠️ All players have died. Game Over.`;
   return createVNode('div', { class: 'winner-overlay' }, [
     createVNode('div', { class: 'winner-banner' }, message),
