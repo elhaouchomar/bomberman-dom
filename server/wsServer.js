@@ -70,7 +70,6 @@ function createRoom() {
         }
     };
     rooms.set(id, room);
-    console.log(`📦 [ROOM] created ${id}`);
     return room;
 }
 
@@ -146,7 +145,6 @@ function roomStartGame(room) {
         return;
     }
     l.gameStarted = true;
-    console.log(`🎮 [ROOM ${room.id}] START game (${l.players.length} players)`);
 
     const gs = room.gameState;
     gs.players.clear();
@@ -202,7 +200,6 @@ setInterval(() => {
             }
         } else if (alive.length === 0) {
             roomBroadcast(room, { type: 'died', payload: [] });
-            console.log(`🤝 [ROOM ${room.id}] Tie`);
             roomEndGame(room);
         }
     }
@@ -210,7 +207,7 @@ setInterval(() => {
 
 /* ---------- WebSocket attach to HTTP server ---------- */
 const wss = new WebSocketServer({ server, host: '0.0.0.0' });
-console.log(`🟢 HTTP + WS server running http://localhost:${PORT}`);
+console.log(`WS server running http://localhost:${PORT}`);
 
 if (rooms.size === 0) createRoom();
 
@@ -294,7 +291,6 @@ wss.on('connection', ws => {
             l.players = l.players?.filter(p => p.id !== myPlayer.id);
 
             if (l.starCout10S && l.players.length < 2) {
-                console.log(`[ROOM ${myRoom.id}] countdown canceled`);
                 if (l.countdownTimer) { clearInterval(l.countdownTimer); l.countdownTimer = null; }
                 l.starCout10S = false;
                 roomStartWaiting(myRoom);
@@ -320,7 +316,6 @@ wss.on('connection', ws => {
             if (!l2.gameStarted && !l2.starCout10S && l2.players.length <= 0) {
                 roomBroadcast(currentRoom, { type: 'restart' });
                 rooms.delete(currentRoom.id);
-                console.log(`🗑️ [ROOM ${currentRoom.id}] removed (empty)`);
             }
         }, 3000);
     });
