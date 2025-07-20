@@ -98,17 +98,27 @@ function ChatRegion(state) {
   ]);
 }
 
+function scrollChatBottom() {
+  const box = refs.chatMessages;
+  if (!box) return;
+  requestAnimationFrame(() => {
+    box.scrollTop = box.scrollHeight;
+  });
+}
+
 function ChatToggleButton(state) {
   const open = state.chatDockOpen;
   return createVNode('button', {
     class: 'chat-toggle-btn' + (open ? ' open' : ''),
-    title: open ? 'Hide chat' : 'Show chat',
     onclick: () => {
-      const cur = store.getState().chatDockOpen;
-      store.setState({ chatDockOpen: !cur });
-      if (!cur) setTimeout(() => refs.chatInput?.focus(), 0);
+      const wasOpen = store.getState().chatDockOpen;
+      store.setState({ chatDockOpen: !wasOpen });
+      if (!wasOpen) {
+        // just opened -> scroll after render
+        setTimeout(scrollChatBottom, 0);
+      }
     }
-  }, open ? '✕' : '💬');   // Only icon characters
+  }, open ? '✕' : '💬');
 }
 
 function NicknameScreen(state) {
@@ -140,6 +150,11 @@ function NicknameScreen(state) {
 }
 
 function WaitingScreen(state) {
+  const showCountdown = state.playerCount === 4;
+  const countdownText = showCountdown
+    ? `Starting Game... ${state.countdown || 10}s`
+    : `Waiting for more players... ${state.waitingTime || 20}s`;
+
   return createVNode('div', {
     class: 'waiting',
     id: 'waiting-screen',
@@ -149,11 +164,7 @@ function WaitingScreen(state) {
     createVNode('div', { id: 'player-counter', class: 'player-counter' },
       `Players: ${state.playerCount}/4`
     ),
-    createVNode('div', { id: 'countdown', class: 'countdown' },
-      state.waitingTime > 0
-        ? `Waiting for more players... ${state.waitingTime}s`
-        : `Starting Game... ${state.countdown || 20}s`
-    ),
+    createVNode('div', { id: 'countdown', class: 'countdown' }, countdownText),
     ErrorBanner(state)
   ]);
 }
@@ -176,7 +187,7 @@ function ChatOverlay(state) {
         const col = colorFor(name);
         return createVNode('div', {
           class: 'chat-msg',
-          style: `--chat-color:${col}`
+          style: `--chat-color:${col}`,
         }, [
           createVNode('span', { class: 'chat-name', style: `color:${col}` }, name + ': '),
           createVNode('span', { class: 'chat-text' }, msg.message)
@@ -186,8 +197,6 @@ function ChatOverlay(state) {
 
     /* input + icon (single relative container) */
     createVNode('div', { class: 'chat-row' }, [
-
-      /* text box */
       createVNode('input', {
         id: 'chat-input',
         ref: el => (refs.chatInput = el),
@@ -223,7 +232,10 @@ function WinnerBanner(data) {
     createVNode('div', { class: 'winner-banner' }, message),
     createVNode('button', {
       id: 'restart-btn',
-      class: 'btn restart-btn'
+      class: 'btn restart-btn',
+      onclick: () => {
+        window.location.reload();
+      }
     }, 'Restart Game')
   ]);
 }

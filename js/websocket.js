@@ -108,6 +108,7 @@ function handleMessage(evt) {
       store.setState({
         screen: 'waiting',
         countdown: payload.countdown,
+        // waitingTime: 0,
         error: ''
       });
       break;

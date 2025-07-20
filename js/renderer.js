@@ -77,15 +77,11 @@ export function renderGame(state, playerId) {
 
 
     const hueCache = new Map();
+    const HUE_SEQUENCE = [0, 130, 250, 50];
 
-    function getHueForPlayer(id, idx) {
+    function getHueForPlayer(id) {
         if (hueCache.has(id)) return hueCache.get(id);
-
-        const base = [0, 130, 250, 50];
-        let hue = base[idx % base.length]
-        if (idx >= base.length) {
-            hue = (idx * 80) % 360;
-        }
+        const hue = HUE_SEQUENCE[hueCache.size % HUE_SEQUENCE.length];
         hueCache.set(id, hue);
         return hue;
     }
@@ -96,8 +92,10 @@ export function renderGame(state, playerId) {
         const SCALE = 1.25;
         const OFFSET = (TILE * SCALE - TILE) / 2;
 
-        return state.players.filter(p => p.alive).map((p, idx) => {
-            const hue = getHueForPlayer(p.id, idx);
+        state.players.forEach(p => { getHueForPlayer(p.id); });
+
+        return state.players.filter(p => p.alive).map(p => {
+            const hue = getHueForPlayer(p.id);
             return createVNode('div', {
                 class: `Character ${p.id === playerId ? 'me' : ''}`,
                 style: `
