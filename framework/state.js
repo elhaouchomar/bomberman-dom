@@ -6,9 +6,9 @@ let state = {
   nickname: '',         // The player's chosen nickname
   playerId: '',         // The unique ID assigned by the server
 
-  // Lobby/Waiting Room
-  players: [],          // List of players in the lobby [{id, nickname}, ...]
-  playerCount: 0,       // Number of players in the lobby
+  // StateInfo/Waiting Room
+  players: [],          // List of players in the stateInfo [{id, nickname}, ...]
+  playerCount: 0,       // Number of players in the stateInfo
   waitingTime: 0,       // Time left in the waiting screen
   countdown: 0,         // Countdown before game starts
 
@@ -35,6 +35,8 @@ let state = {
 
   // Error/Notifications
   error: '',            // Error messages to display to the user
+  chatDockOpen: true,
+  viewportWide: window.innerWidth >= 1350,
 
   // Any other UI state
   // e.g., modalVisible: false, etc.
@@ -50,8 +52,7 @@ export const store = {
 
   setState(partial) {    
     state = { ...state, ...partial };   // simple, generic merge
-    
-    subscribers?.forEach( fn => { fn()});    // notify after every commit
+    subscribers?.forEach(fn => { fn() });    // notify after every commit
   },
 
   /* subscribe returns an "unsubscribe" function */

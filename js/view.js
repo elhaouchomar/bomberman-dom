@@ -1,63 +1,171 @@
-import { createVNode } from '../framework/core.js';
+import { createVNode, refs } from '../framework/core.js';
 import store from '../framework/state.js';
-import { socket } from './websocket.js'; // path relative to view.js
+import { socket } from './websocket.js';
 import { renderGame } from './renderer.js';
+import { events } from '../framework/event.js';
 
-document.body.addEventListener('click', (e) => {
-  console.log(e.target.id);
-  if (e.target.id === 'restart-btn') {
-    socket.send(JSON.stringify({ type: 'restart' }));
-    // Optionally, update state/UI if you want to show a loading state, etc.
-    store.setState({ screen: 'waiting', error: '' });
-  }
-});
+const CHAT_COLORS = [
+  '#40ffbfff', // red
+  '#f1f514ff', // green
+  '#d12a99ff', // blue
+  '#b9b9b9ff', // orange
+  '#b56bff', // purple fallback
+];
 
-document.body.addEventListener('keyup', (e) => {
-    console.log(e.target.value);
-    
-  if (e.target.id === 'nickname-input' && e.key === 'Enter') {
-    document.getElementById('join-btn').click();
+const assignedColor = new Map(); // nickname -> color
+function colorFor(name) {
+  if (!name || name.toLowerCase() === 'system') return '#b56bff'; // violet
+  if (assignedColor.has(name)) return assignedColor.get(name);
+  // pick next color in list (excluding system violet)
+  const idx = assignedColor.size % CHAT_COLORS.length;
+  const c = CHAT_COLORS[idx];
+  assignedColor.set(name, c);
+  return c;
+}
+
+// Handle click events
+export function attachViewGlobalEvents() {
+  document.body.onclick = function (e) {
+    if (e.target === refs.joinBtn) {
+      const nickname = refs.nicknameInput?.value.trim() || '';
+      if (!nickname) {
+        store.setState({ error: 'Please enter a nickname.' });
+        return;
+      }
+
+      store.setState({ nickname, error: '' });
+      socket.send(JSON.stringify({ type: 'join', payload: { nickname } }));
+    }
+
+    if (e.target === refs.chatSend) {
+      const message = refs.chatInput?.value.trim();
+      if (!message) return;
+      socket.send(JSON.stringify({ type: 'chat', payload: { message } }));
+      refs.chatInput.value = '';
+    }
+
+    if (e.target.id === 'restart-btn') {
+      socket.send(JSON.stringify({ type: 'restart' }));
+
+    }
+  };
+
+  // Handle Enter key
+  document.body.onkeydown = function (e) {
+    if (e.target === refs.nicknameInput && e.key === 'Enter') {
+      refs.joinBtn?.click();
+    }
+
+    if (e.target === refs.chatInput && e.key === 'Enter') {
+      refs.chatSend?.click();
+    }
+  };
+
+  if (!window.__chatResizeBound) {
+    window.__chatResizeBound = true;
+    const resizeHandler = () => {
+      const wide = window.innerWidth >= 1350;
+      if (wide !== store.getState().viewportWide) {
+        const patch = { viewportWide: wide };
+        if (wide) patch.chatDockOpen = true;  // force open when becoming wide
+        store.setState(patch);
+      }
+    };
+    events.on(window, 'resize', resizeHandler);
+    resizeHandler();
   }
 
-  if (e.target.id === 'chat-input' && e.key === 'Enter') {
-    document.getElementById('chat-send').click();
-  }
-});
+}
 
 export function AppView(state) {
-    console.log(state);
-  return createVNode('div', {class: 'app'}, [
+  return createVNode('div', { class: 'app' }, [
     state.screen === 'nickname' && NicknameScreen(state),
     state.screen === 'waiting' && WaitingScreen(state),
     state.screen === 'game' && GameScreen(state),
-    // ChatOverlay(state),
-    // ErrorBanner(state)
+    state.screen === 'winner' && WinnerBanner(state),
+    ChatRegion(state) // (only place you render chat now)
   ]);
 }
 
+function ChatRegion(state) {
+  const wide = state.viewportWide;                 // or window.innerWidth >= 1350
+  const nonNickname = state.screen !== 'nickname';
+  const shouldShow = nonNickname && (wide || state.chatDockOpen);
+
+  return createVNode('div', {}, [
+    shouldShow && ChatOverlay(state),
+    (nonNickname && !wide) && ChatToggleButton(state)
+  ]);
+}
+
+function scrollChatBottom() {
+  const box = refs.chatMessages;
+  if (!box) return;
+  requestAnimationFrame(() => {
+    box.scrollTop = box.scrollHeight;
+  });
+}
+
+function ChatToggleButton(state) {
+  const open = state.chatDockOpen;
+  return createVNode('button', {
+    class: 'chat-toggle-btn' + (open ? ' open' : ''),
+    onclick: () => {
+      const wasOpen = store.getState().chatDockOpen;
+      store.setState({ chatDockOpen: !wasOpen });
+      if (!wasOpen) {
+        // just opened -> scroll after render
+        setTimeout(scrollChatBottom, 0);
+      }
+    }
+  }, open ? '✕' : '💬');
+}
+
 function NicknameScreen(state) {
-  return createVNode('div', { class: 'screen', id: 'nickname-screen', style: `display:${state.screen === 'nickname' ? 'block' : 'none'}` }, [
+  return createVNode('div', { class: 'bomber', id: 'nickname-screen' }, [
     createVNode('h1', {}, '🎮 BOMBERMAN DOM'),
-    createVNode('input', { id: 'nickname-input', class: 'nickname-input', type: 'text', placeholder: 'Enter your nickname', maxlength: 15, value: state.nickname }),
-    createVNode('button', { id: 'join-btn', class: 'btn' }, 'Join Game')
+    createVNode('input', {
+      id: 'nickname-input',
+      ref: el => refs.nicknameInput = el,
+      class: 'nickname-input',
+      type: 'text',
+      placeholder: 'Enter your nickname',
+      maxlength: 15,
+      value: state.nickname || '',
+      onkeydown: e => {
+        if (e.key === ' ') e.preventDefault();
+      },
+      oninput: e => {
+        const v = e.target.value;
+        if (/\s/.test(v)) e.target.value = v.replace(/\s+/g, '');
+      }
+    }),
+    createVNode('button', {
+      id: 'join-btn',
+      ref: el => { refs.joinBtn = el },
+      class: 'btn'
+    }, 'Join Game'),
+    ErrorBanner(state)
   ]);
 }
 
 function WaitingScreen(state) {
-  return createVNode('div', { class: 'screen', id: 'waiting-screen', style: `display:${state.screen === 'waiting' ? 'block' : 'none'}` }, [
+  const showCountdown = state.playerCount === 4;
+  const countdownText = showCountdown || state.countdown
+    ? `Starting Game... ${state.countdown || 10}s`
+    : `Waiting for more players... ${state.waitingTime || 20}s`;
+
+  return createVNode('div', {
+    class: 'waiting',
+    id: 'waiting-screen',
+    style: `display:${state.screen === 'waiting' ? 'block' : 'none'}`
+  }, [
     createVNode('h2', {}, 'Waiting for Players…'),
-    createVNode('div', { id: 'player-counter', class: 'player-counter' }, `Players: ${state.playerCount}/4`),
-    createVNode('div', { id: 'countdown', class: 'countdown' }, 
-      state.waitingTime > 0 ? `Waiting for more players... ${state.waitingTime}s` : `Starting Game... ${state.countdown}s`),
-    createVNode('div', { class: 'chat-overlay' }, [
-    createVNode('div', { id: 'chat-messages', class: 'chat-messages' }, state.chatMessages.map(msg =>
-      createVNode('div', {}, `${msg.nickname}: ${msg.message}`)
-    )),
-    createVNode('div', { class: 'chat-input-container' }, [
-      createVNode('input', { id: 'chat-input', class: 'chat-input', type: 'text', placeholder: 'Type message…' }),
-      createVNode('button', { id: 'chat-send', class: 'chat-send' }, 'Send')
-      ])
-    ])
+    createVNode('div', { id: 'player-counter', class: 'player-counter' },
+      `Players: ${state.playerCount}/4`
+    ),
+    createVNode('div', { id: 'countdown', class: 'countdown' }, countdownText),
+    ErrorBanner(state)
   ]);
 }
 
@@ -66,19 +174,44 @@ function GameScreen(state) {
     class: 'screen',
     id: 'game-screen',
     style: `display:${state.screen === 'game' ? 'block' : 'none'}`
-  }, [
-    renderGame(state.gameState, state.playerId)
-  ]);
+  }, [renderGame(state.gameState, state.playerId)]);
 }
 
 function ChatOverlay(state) {
-  return createVNode('div', { class: 'chat-overlay', style: `display:${state.chatVisible ? 'flex' : 'none'}` }, [
-    createVNode('div', { id: 'chat-messages', class: 'chat-messages' }, state.chatMessages.map(msg =>
-      createVNode('div', {}, `${msg.nickname}: ${msg.message}`)
-    )),
-    createVNode('div', { class: 'chat-input-container' }, [
-      createVNode('input', { id: 'chat-input', class: 'chat-input', type: 'text', placeholder: 'Type message…' }),
-      createVNode('button', { id: 'chat-send', class: 'chat-send' }, 'Send')
+  return createVNode('div', { class: 'chat-overlay' }, [
+
+    /* messages */
+    createVNode('div', { id: 'chat-messages', class: 'chat-messages', ref: el => (refs.chatMessages = el) },
+      state.chatMessages.map(msg => {
+        const name = msg.nickname || 'System';
+        const col = colorFor(name);
+        return createVNode('div', {
+          class: 'chat-msg',
+          style: `--chat-color:${col}`,
+        }, [
+          createVNode('span', { class: 'chat-name', style: `color:${col}` }, name + ': '),
+          createVNode('span', { class: 'chat-text' }, msg.message)
+        ]);
+      })
+    ),
+
+    /* input + icon (single relative container) */
+    createVNode('div', { class: 'chat-row' }, [
+      createVNode('input', {
+        id: 'chat-input',
+        ref: el => (refs.chatInput = el),
+        class: 'chat-input',
+        type: 'text',
+        placeholder: 'Type message…'
+      }),
+
+      /* invisible button that sits ON the input */
+      createVNode('button', {
+        id: 'chat-send',
+        ref: el => (refs.chatSend = el),
+        class: 'chat-send',
+        title: 'Send'
+      }, '➤'),
     ])
   ]);
 }
@@ -89,146 +222,19 @@ function ErrorBanner(state) {
     : null;
 }
 
- // adjust path as needed
-
-socket.onmessage = function(event) {
-  const msg = JSON.parse(event.data);
-
-  switch (msg.type) {
-    case 'playerId':
-      // Server assigns a playerId after joining
-      store.setState({ playerId: msg.payload });
-      break;
-
-    case 'playerList':
-      // Update lobby player list and count
-      store.setState({
-        players: msg.payload,
-        playerCount: msg.payload.length,
-        error: ''
-      });
-      break;
-
-    case 'waiting':
-      // Waiting for more players
-      store.setState({
-        screen: 'waiting',
-        waitingTime: msg.payload.waiting,
-        chatVisible: true,
-        error: ''
-      });
-      break;
-
-    case 'countdown':
-      // Countdown before game starts
-      store.setState({
-        screen: 'waiting',
-        countdown: msg.payload.countdown,
-        error: ''
-      });
-      break;
-
-    case 'gameStart':
-      // Game is starting
-      store.setState({
-        screen: 'game',
-        gameStarted: true,
-        chatVisible: true,
-        error: ''
-      });
-      break;
-
-    case 'state':
-      // Full game state update (positions, bombs, etc.)
-      store.setState({
-        gameState: msg.payload,
-        // Optionally update playerInfo if included in payload
-        // playerInfo: msg.payload.playerInfo
-      });
-      break;
-
-    case 'chat':
-      // New chat message
-      store.setState({
-        chatMessages: [...store.getState().chatMessages, msg.payload],
-        error: ''
-      });
-      break;
-
-    case 'winner':
-      // Game ended, show winner
-      store.setState({
-        winner: msg.payload,
-        screen: '', // or a dedicated 'winner' screen if you want
-        gameStarted: false,
-        error: ''
-      });
-      break;
-
-    case 'error':
-      // Show error message
-      store.setState({ error: msg.payload.message });
-      break;
-
-    default:
-      // Handle any other message types as needed
-      break;
-  }
-};
-
-function showError(msg) {
-  store.setState({ error: msg });
-  setTimeout(() => store.setState({ error: '' }), 3000);
+function WinnerBanner(data) {
+  const message = data.type === 'win' ?
+    ` 🎉 Congratulations, ${data.winner.nickname}! You are the winner of the game! 🏆` :
+    data.type === 'lose' ? `💀 Sorry, ${data.winner.nickname}! you have lost the game. Better luck next game! 😞` :
+      `☠️ All players have died. Game Over.`;
+  return createVNode('div', { class: 'winner-overlay' }, [
+    createVNode('div', { class: 'winner-banner' }, message),
+    createVNode('button', {
+      id: 'restart-btn',
+      class: 'btn restart-btn',
+      onclick: () => {
+        window.location.reload();
+      }
+    }, 'Restart Game')
+  ]);
 }
-
-document.body.addEventListener('click', (e) => {
-  if (e.target.id === 'chat-send') {
-    const chatInput = document.getElementById('chat-input');
-    const message = chatInput ? chatInput.value.trim() : '';
-
-    if (!message) {
-      showError('Please enter a message.');
-      return;
-    }
-
-    socket.send(JSON.stringify({
-      type: 'chat',
-      payload: { message }
-    }));
-
-    chatInput.value = '';
-    store.setState({ error: '' });
-  }
-});
-
-document.body.addEventListener('keydown', (e) => {
-  if (e.target.id === 'chat-input' && e.key === 'Enter') {
-    document.getElementById('chat-send').click();
-  }
-});
-
-document.body.addEventListener('click', (e) => {
-  if (e.target.id === 'join-btn') {
-    console.log('Join button clicked!');
-    const nicknameInput = document.getElementById('nickname-input');
-    const nickname = nicknameInput ? nicknameInput.value.trim() : '';
-
-    if (!nickname) {
-      store.setState({ error: 'Please enter a nickname.' });
-      return;
-    }
-
-    store.setState({ nickname, error: '' });
-
-    socket.send(JSON.stringify({
-      type: 'join',
-      payload: { nickname }
-    }));
-  }
-});
-
-document.body.addEventListener('keydown', (e) => {
-  if (e.target.id === 'nickname-input' && e.key === 'Enter') {
-    document.getElementById('join-btn').click();
-  }
-});

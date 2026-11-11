@@ -15,10 +15,6 @@ export class EventManager {
       delete el._eventId;
     }
   }
-
- /*  _genId() {
-    return `ev_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-  } */
 }
 
 export const events = new EventManager();
